@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StringTune — High-performance, modular web effects</title>
+  <meta name="description" content="StringTune is a cutting-edge JavaScript library for high-performance, modular web effects — parallax scrolling, magnetic cursor, progress tracking, split text and autoplay videos, all attribute-driven. A study recreation.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='10' fill='%23e6392e'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Space+Mono:wght@400;700&family=Noto+Serif+JP:wght@600;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/features.css">
+  <noscript>
+    <style>
+      [data-reveal], [data-split] .st-char, [data-split] .st-word, [data-split] .st-line-inner,
+      .intro, .cursor, .cookie { display: none !important; }
+      [data-reveal], [data-split] { opacity: 1 !important; transform: none !important; }
+    </style>
+  </noscript>
+</head>
+<body>
+
+<!-- ══════════════ INTRO OVERLAY ══════════════ -->
+<div class="intro" id="intro" aria-hidden="true">
+  <span class="intro-ver mono">v_ 1.2.5</span>
+  <button class="intro-skip mono" id="introSkip" type="button">Close ✕</button>
+
+  <p class="intro-hello" id="introHello"><span class="intro-emoji">🌦️</span> Ah, you've finally awaked……</p>
+
+  <div class="intro-dialog">
+    <div class="intro-avatar">
+      <img src="images/aika.jpg" alt="Aika">
+    </div>
+    <div class="intro-body">
+      <span class="intro-name mono">Aika</span>
+      <p class="intro-typing" id="introTyping"><span id="introText"></span><span class="type-caret"></span></p>
+    </div>
+  </div>
+
+  <button class="intro-next mono" id="introNext" type="button">Next <span class="next-arrow">→</span></button>
+</div>
+
+<!-- custom cursor -->
+<div class="cursor" id="cursor" aria-hidden="true">
+  <div class="cursor-pos" id="cursorDotPos"><div class="cursor-dot"></div></div>
+  <div class="cursor-pos" id="cursorRingPos"><div class="cursor-ring"></div><span class="cursor-label mono"></span></div>
+</div>
+
+<!-- scroll progress -->
+<div class="scroll-progress" aria-hidden="true"><span id="scrollProgressBar"></span></div>
+
+<!-- ══════════════ NAV ══════════════ -->
+<header class="nav" id="nav">
+  <a class="nav-logo" href="#top" data-cursor="Home" aria-label="Back to top">
+    String<em>Tune</em><span class="logo-dot"></span>
+  </a>
+  <nav class="nav-links" aria-label="Primary">
+    <a href="#overview" data-pluck>Overview</a>
+    <a href="#principles" data-pluck>Features</a>
+    <a href="#effects" data-pluck>Effects</a>
+    <a href="#docs" data-pluck>Get started</a>
+  </nav>
+  <div class="nav-right">
+    <span class="mono nav-ver">v_ 1.2.5</span>
+    <span class="live-dot" title="tuned"></span>
+    <button class="burger" id="burger" type="button" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- mobile menu -->
+<div class="menu" id="menu" aria-hidden="true">
+  <nav class="menu-links">
+    <a href="#overview"><span class="mono menu-idx">01</span>Overview</a>
+    <a href="#principles"><span class="mono menu-idx">02</span>Features</a>
+    <a href="#effects"><span class="mono menu-idx">03</span>Effects</a>
+    <a href="#who"><span class="mono menu-idx">04</span>Who it's for</a>
+    <a href="#docs"><span class="mono menu-idx">05</span>Get started</a>
+  </nav>
+  <p class="menu-foot mono">attribute-driven · css-first · js-light</p>
+</div>
+
+<div id="st-smooth" class="st-smooth">
+<main id="top">
+
+  <!-- ══════════════ HERO ══════════════ -->
+  <section class="hero" id="hero">
+    <div class="hero-inner">
+      <p class="hero-eyebrow mono" data-reveal><span class="intro-emoji">🌦️</span> Ah, you've finally awaked……</p>
+
+      <h1 class="hero-title" aria-label="Master Your Skills">
+        <span class="hero-title-line" data-split="chars" data-split-scroll data-reveal-lines>Master</span>
+        <span class="hero-title-line hero-title-line--indent" data-split="chars" data-split-scroll data-reveal-lines>Your</span>
+        <span class="hero-title-line" data-split="chars" data-split-scroll data-reveal-lines>Skills<em class="hero-red">.</em></span>
+      </h1>
+
+      <div class="hero-bottom">
+        <p class="hero-sub" data-reveal>High-performance, modular web effects — parallax, magnetic cursor, progress, split text, autoplay videos.<br><strong>Attribute-driven. CSS-first. JS-light.</strong></p>
+        <div class="hero-wordswap" aria-hidden="true">
+          <span class="mono hero-wordswap-label">/ keep scrolling</span>
+          <span class="wordswap" id="heroWordswap">
+            <span class="wordswap-word is-active">Concentrate</span>
+            <span class="wordswap-word">Keep&nbsp;Scrolling</span>
+            <span class="wordswap-word">The&nbsp;Spirit&nbsp;Awakened</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-media">
+      <div class="hero-media-par" data-parallax="-12">
+        <img src="images/katana-hero.jpg" alt="A katana floating in darkness" draggable="false">
+      </div>
+      <span class="hero-kanji kanji" aria-hidden="true">刃</span>
+    </div>
+
+    <div class="hero-hint mono" aria-hidden="true">
+      <span>Scroll</span>
+      <span class="scroll-line"></span>
+    </div>
+
+    <div class="hero-corner mono" aria-hidden="true"> Tune the string — <em>then cut.</em></div>
+  </section>
+
+  <!-- ══════════════ MARQUEE — the effect list ══════════════ -->
+  <aside class="marquee" data-marquee-speed="26" aria-hidden="true">
+    <div class="marquee-track">
+      <div class="marquee-chunk">
+        <span class="marquee-item">Parallax <em>scrolling</em></span>
+        <span class="marquee-item">Magnetic <em>cursor</em></span>
+        <span class="marquee-item">Progress <em>indicators</em></span>
+        <span class="marquee-item">Split <em>text</em></span>
+        <span class="marquee-item">Autoplay <em>videos</em></span>
+      </div>
+      <div class="marquee-chunk" data-marquee-clone></div>
+    </div>
+  </aside>
+
+  <!-- ══════════════ OVERVIEW ══════════════ -->
+  <section class="overview" id="overview">
+    <div class="ov-grid">
+      <div class="ov-left">
+        <p class="mono section-tag" data-reveal>01 — Overview</p>
+        <h2 class="section-title" data-split="lines" data-reveal-lines>What is<br><em class="serif">StringTune?</em></h2>
+        <p class="ov-lead" data-reveal>A cutting-edge JavaScript library for <strong>high-performance, modular web effects</strong>. Smooth parallax scrolling, dynamic cursor interactions, progress tracking, autoplay videos — all through a powerful, <em class="serif">attribute-driven</em> approach that stays intuitive for beginners and advanced developers alike.</p>
+        <div class="ov-pills" data-reveal>
+          <span class="kw-chip">Declarative First</span>
+          <span class="kw-chip">Customizable API</span>
+          <span class="kw-chip">Performant</span>
+        </div>
+      </div>
+      <div class="ov-right">
+        <p class="mono docs-label" data-reveal>Why StringTune?</p>
+        <p class="ov-text" data-reveal>In a world of constantly evolving web experiences, StringTune keeps you ahead — a versatile toolset for dynamic, engaging effects without reinventing the wheel. It bridges the gap between <em class="serif">creativity</em> and <em class="serif">technical execution.</em></p>
+        <ul class="ov-benefits">
+          <li data-reveal><span class="mono ov-b-idx">S.1</span><div><h3>Simplicity</h3><p>No complex setups. Include the library, add HTML attributes — see your effects in action.</p></div></li>
+          <li data-reveal data-delay="1"><span class="mono ov-b-idx">S.2</span><div><h3>Flexibility</h3><p>A modular system: include only the effects you need, ensuring efficiency.</p></div></li>
+          <li data-reveal data-delay="2"><span class="mono ov-b-idx">S.3</span><div><h3>Compatibility</h3><p>Built with modern web standards — seamless across browsers and devices.</p></div></li>
+          <li data-reveal data-delay="3"><span class="mono ov-b-idx">S.4</span><div><h3>Scalability</h3><p>Suitable for any project size, from personal portfolios to large-scale applications.</p></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ KEY FEATURES ══════════════ -->
+  <section class="principles" id="principles">
+    <header class="section-head">
+      <p class="mono section-tag" data-reveal>02 — Key Features</p>
+      <h2 class="section-title" data-split="lines" data-reveal-lines>To master the string<br>is to <em class="serif">master the code.</em></h2>
+      <p class="section-sub" data-reveal>Everything moves — yet every piece stands alone. <em class="serif">Modular by nature.</em></p>
+    </header>
+
+    <div class="principles-grid">
+      <article class="p-card" data-reveal>
+        <span class="p-card-kanji kanji" aria-hidden="true">組</span>
+        <span class="p-card-idx mono">i.</span>
+        <h3>Modular Architecture</h3>
+        <p>Use only the modules you need — keep your project lightweight and optimized.</p>
+      </article>
+      <article class="p-card" data-reveal data-delay="1">
+        <span class="p-card-kanji kanji" aria-hidden="true">印</span>
+        <span class="p-card-idx mono">ii.</span>
+        <h3>Attribute-Based</h3>
+        <p>Configure effects directly in HTML with clear, descriptive attributes.</p>
+      </article>
+      <article class="p-card" data-reveal data-delay="2">
+        <span class="p-card-kanji kanji" aria-hidden="true">始</span>
+        <span class="p-card-idx mono">iii.</span>
+        <h3>Effortless Init</h3>
+        <p>Start everything with a few lines of JavaScript. No ceremony. No bloat.</p>
+      </article>
+      <article class="p-card" data-reveal>
+        <span class="p-card-kanji kanji" aria-hidden="true">波</span>
+        <span class="p-card-idx mono">iv.</span>
+        <h3>Wide Range of Effects</h3>
+        <p>Parallax scrolling · magnetic cursor · progress indicators · split text animations · autoplay videos.</p>
+      </article>
+      <article class="p-card" data-reveal data-delay="1">
+        <span class="p-card-kanji kanji" aria-hidden="true">速</span>
+        <span class="p-card-idx mono">v.</span>
+        <h3>Performance-Oriented</h3>
+        <p>Built for smooth performance — even on the most complex pages.</p>
+      </article>
+      <article class="p-card p-card--red" data-reveal data-delay="2">
+        <span class="p-card-idx mono">core</span>
+        <h3>Declarative first.<br><em class="serif">Customizable.</em><br>Performant.</h3>
+        <span class="p-card-stamp kanji" aria-hidden="true">弦</span>
+      </article>
+    </div>
+  </section>
+
+  <!-- ══════════════ EFFECTS / FEATURES GRID ══════════════ -->
+  <section class="effects" id="effects">
+    <header class="section-head">
+      <p class="mono section-tag" data-reveal>03 — Effects</p>
+      <h2 class="section-title" data-split="lines" data-reveal-lines>Every motion has<br>an <em class="serif">edge.</em></h2>
+    </header>
+
+    <div class="fx-grid">
+      <article class="fx-card fx-card--tall" data-reveal="scale">
+        <span class="fx-kanji kanji" data-parallax="-8" aria-hidden="true">視</span>
+        <div class="fx-mini-scene" aria-hidden="true">
+          <span class="fs-a" data-parallax="10">山</span>
+          <span class="fs-b" data-parallax="24">川</span>
+          <span class="fs-c" data-parallax="40">風</span>
+        </div>
+        <h3>Parallax<br>Scrolling</h3>
+        <p>Layers drift at their own speeds. One attribute: <code class="inline">string="parallax"</code></p>
+        <p class="mono fx-mini">scroll to feel the depth</p>
+      </article>
+
+      <article class="fx-card" data-reveal="scale" data-delay="1">
+        <h3>Magnetic<br>Cursor</h3>
+        <p>Elements lean toward the pointer. Buttons, chips, whole panels — anything can attract.</p>
+        <div class="fx-magnet-zone" aria-hidden="true">
+          <button class="fx-magnet mono" type="button" data-magnetic>Magnet</button>
+        </div>
+        <p class="mono fx-mini">string="magnetic"</p>
+      </article>
+
+      <article class="fx-card" data-reveal="scale" data-delay="2">
+        <h3>Progress<br>Indicators</h3>
+        <p>Scroll position as data — route it into bars, counters, anything on the page.</p>
+        <div class="fx-meter"><span class="fx-meter-bar" data-meter="78"></span></div>
+        <p class="fx-count mono"><span data-count="78">0</span>% tuned</p>
+        <p class="mono fx-mini">string="progress"</p>
+      </article>
+
+      <article class="fx-card fx-card--wide" data-reveal="scale">
+        <span class="fx-kanji kanji" aria-hidden="true">文</span>
+        <div class="fx-wide-body">
+          <h3>Split <em class="serif">Text</em> Animations</h3>
+          <p>Characters, words, lines — each one becomes a vessel for motion, with safe natural kerning.</p>
+          <p class="fx-splitdemo" data-split="words">Hover this sentence — every word reacts on its own delay.</p>
+          <p class="mono fx-mini">chars · words · lines</p>
+        </div>
+      </article>
+
+      <article class="fx-card fx-card--wide fx-card--row" data-reveal="scale" data-delay="1">
+        <div class="fx-wide-body">
+          <h3>Autoplay <em class="serif">Videos</em></h3>
+          <p>Media wakes when it enters the viewport and sleeps when it leaves — bandwidth respected. Click the frame to pause.</p>
+          <p class="mono fx-mini">string="video" · muted · loop · in-view</p>
+        </div>
+        <div class="fx-media">
+          <div class="vid" role="button" tabindex="0" aria-label="Toggle mock video">
+            <img src="images/dev-desk.jpg" alt="" draggable="false">
+            <span class="vid-play"><i>❚❚</i></span>
+            <span class="vid-bar"></span>
+          </div>
+        </div>
+      </article>
+
+      <article class="fx-card fx-card--last" data-reveal="scale" data-delay="2">
+        <div class="fx-media fx-media--flat">
+          <div class="ph" data-parallax="16"><img src="images/ink-speed.jpg" alt="Ink stroke with a red slash" loading="lazy" draggable="false"></div>
+        </div>
+        <h3><em class="serif">Ultra</em> Optimized</h3>
+        <p>RAF-batched reads, transform-only writes. <span class="fx-count mono"><span data-count="16">0</span> ms frame budget</span></p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ══════════════ PINNED SCENE ══════════════ -->
+  <section class="pin" id="pin" data-pin>
+    <div class="pin-stage">
+      <span class="pin-bgword" data-pin-layer="-0.18" aria-hidden="true"><span class="kanji">稽古</span></span>
+
+      <div class="pin-left">
+        <p class="mono section-tag" data-reveal>04 — The Practice · Keiko</p>
+        <h2 class="pin-title">
+          <span class="wordswap wordswap--big" id="pinWordswap" aria-live="polite">
+            <span class="wordswap-word is-active">Discipline</span>
+            <span class="wordswap-word">Precision</span>
+            <span class="wordswap-word">Flow</span>
+          </span>
+        </h2>
+        <ol class="pin-names mono" aria-hidden="true">
+          <li data-pin-layer="0.06"><i></i>Oji — the master</li>
+          <li data-pin-layer="0.1"><i></i>Thes — the shadow</li>
+          <li data-pin-layer="0.14"><i></i>Aika — the blade</li>
+        </ol>
+        <p class="pin-quote" data-pin-layer="0.05">"To master the String… <em class="serif">is to master the code.</em>"</p>
+      </div>
+
+      <div class="pin-right">
+        <figure class="pin-figure" data-reveal="scale">
+          <div class="ph" data-parallax="10">
+            <img src="images/aika.jpg" alt="Aika, the swordswoman" draggable="false">
+          </div>
+        </figure>
+        <svg class="pin-slash" viewBox="0 0 600 200" fill="none" aria-hidden="true">
+          <path class="pin-slash-path" d="M8 170 C 150 150, 300 120, 410 70 S 560 20, 592 14" />
+        </svg>
+        <span class="pin-stamp kanji" data-pin-layer="-0.1" aria-hidden="true">十</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ MASONRY / THE DOJO ══════════════ -->
+  <section class="masonry-sec" id="dojo">
+    <header class="section-head">
+      <p class="mono section-tag" data-reveal>05 — The Dojo</p>
+      <h2 class="section-title" data-split="lines" data-reveal-lines>Scenes from<br>the <em class="serif">dojo.</em></h2>
+      <p class="section-sub" data-reveal>Every tile drifts at its own speed. <em class="serif">Parallax, naturally.</em></p>
+    </header>
+
+    <div class="masonry">
+      <figure class="m-item" data-reveal="fade">
+        <div class="ph" data-parallax="12"><img src="images/ink-landscape.jpg" alt="Ink mountains under a red sun" loading="lazy" draggable="false"></div>
+        <figcaption class="mono">dawn over the repository</figcaption>
+      </figure>
+      <figure class="m-item" data-reveal="fade" data-delay="1">
+        <div class="ph" data-parallax="18"><img src="images/oji.jpg" alt="Oji, the old master" loading="lazy" draggable="false"></div>
+        <figcaption class="mono">Oji — <em>the master watches</em></figcaption>
+      </figure>
+      <figure class="m-item" data-reveal="fade" data-delay="2">
+        <div class="ph" data-parallax="10"><img src="images/red-thread.jpg" alt="A red thread" loading="lazy" draggable="false"></div>
+        <figcaption class="mono">the red thread — <em>state</em></figcaption>
+      </figure>
+      <figure class="m-item" data-reveal="fade">
+        <div class="ph" data-parallax="16"><img src="images/thes.jpg" alt="Thes, the hooded shadow" loading="lazy" draggable="false"></div>
+        <figcaption class="mono">Thes — <em>the shadow strings</em></figcaption>
+      </figure>
+      <figure class="m-item" data-reveal="fade" data-delay="1">
+        <div class="ph" data-parallax="14"><img src="images/dev-desk.jpg" alt="A desk at midnight" loading="lazy" draggable="false"></div>
+        <figcaption class="mono">midnight commit</figcaption>
+      </figure>
+      <figure class="m-item" data-reveal="fade" data-delay="2">
+        <div class="ph" data-parallax="12"><img src="images/ink-speed.jpg" alt="Ink and a red slash" loading="lazy" draggable="false"></div>
+        <figcaption class="mono">one stroke, <em>one frame</em></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ══════════════ MARQUEE 2 ══════════════ -->
+  <aside class="marquee marquee--serif" data-marquee-speed="34" aria-hidden="true">
+    <div class="marquee-track">
+      <div class="marquee-chunk">
+        <span class="marquee-item">Take it… <em>and listen…</em></span>
+        <span class="marquee-item">Concentrate</span>
+        <span class="marquee-item">Keep <em>scrolling</em></span>
+        <span class="marquee-item">The spirit <em>awakened</em></span>
+      </div>
+      <div class="marquee-chunk" data-marquee-clone></div>
+    </div>
+  </aside>
+
+  <!-- ══════════════ WHO IT'S FOR ══════════════ -->
+  <section class="who" id="who">
+    <header class="section-head">
+      <p class="mono section-tag" data-reveal>06 — Who it's for</p>
+      <h2 class="section-title" data-split="lines" data-reveal-lines>Pick your <em class="serif">grip.</em></h2>
+      <p class="section-sub" data-reveal>Direct, welcoming — with respect for every kind of builder.</p>
+    </header>
+
+    <div class="who-grid">
+      <article class="who-card" data-reveal>
+        <span class="who-num mono">01</span>
+        <h3>Even <em class="serif">Designers</em></h3>
+        <p>Bring creative visions to life with minimal setup. Prototype or ship — it feels right in the hand.</p>
+        <span class="who-arrow" aria-hidden="true">→</span>
+      </article>
+      <article class="who-card" data-reveal data-delay="1">
+        <span class="who-num mono">02</span>
+        <h3>Beginner <em class="serif">Developers</em></h3>
+        <p>Add advanced web effects without deep technical knowledge. Markup-first — no wizardry required.</p>
+        <span class="who-arrow" aria-hidden="true">→</span>
+      </article>
+      <article class="who-card" data-reveal data-delay="2">
+        <span class="who-num mono">03</span>
+        <h3>Experienced <em class="serif">Developers</em></h3>
+        <p>Leverage modularity and API options to create complex, custom effects. Extend. Tune.</p>
+        <span class="who-arrow" aria-hidden="true">→</span>
+      </article>
+    </div>
+
+    <div class="who-banner" data-reveal="scale">
+      <p class="mono">for when you need precision</p>
+      <p class="who-banner-line">Extend. Override. <em class="serif">Compose.</em></p>
+    </div>
+  </section>
+
+  <!-- ══════════════ GETTING STARTED ══════════════ -->
+  <section class="clarity" id="docs">
+    <div class="clarity-left">
+      <p class="mono section-tag" data-reveal>07 — Getting Started</p>
+      <h2 class="section-title" data-split="lines" data-reveal-lines>Start in<br><em class="serif">minutes.</em></h2>
+      <p class="section-sub" data-reveal>Declarative first — most configuration lives right in your markup.</p>
+
+      <div class="docs-stack">
+        <div class="code-card" data-reveal>
+          <div class="code-head">
+            <span class="code-dots"><i></i><i></i><i></i></span>
+            <span class="code-name mono">cdn — index.html</span>
+            <button class="copy-btn mono" type="button" data-copy="#codeCdn">Copy</button>
+          </div>
+          <pre id="codeCdn"><code>&lt;script src=<span class="c-str">"https://unpkg.com/@fiddle-digital/string-tune@latest/dist/index.js"</span>&gt;&lt;/script&gt;</code></pre>
+        </div>
+
+        <div class="code-card" data-reveal>
+          <div class="code-head">
+            <span class="code-dots"><i></i><i></i><i></i></span>
+            <span class="code-name mono">terminal</span>
+            <button class="copy-btn mono" type="button" data-copy="#codeNpm">Copy</button>
+          </div>
+          <pre id="codeNpm"><code><span class="c-fn">npm</span> install @fiddle-digital/string-tune</code></pre>
+        </div>
+
+        <div class="code-card" data-reveal>
+          <div class="code-head">
+            <span class="code-dots"><i></i><i></i><i></i></span>
+            <span class="code-name mono">register — app.js</span>
+            <button class="copy-btn mono" type="button" data-copy="#codeJs">Copy</button>
+          </div>
+          <pre id="codeJs"><code><span class="c-key">const</span> stringTune = StringTune.<span class="c-fn">getInstance</span>();
+stringTune.<span class="c-fn">use</span>(StringParallax);
+stringTune.<span class="c-fn">use</span>(StringMagnetic);
+stringTune.<span class="c-fn">start</span>(<span class="c-num">60</span>); <span class="c-mut">// Start with 60 FPS</span></code></pre>
+        </div>
+
+        <div class="code-card" data-reveal>
+          <div class="code-head">
+            <span class="code-dots"><i></i><i></i><i></i></span>
+            <span class="code-name mono">markup — the attributes</span>
+            <button class="copy-btn mono" type="button" data-copy="#codeHtml">Copy</button>
+          </div>
+          <pre id="codeHtml"><code>&lt;div class=<span class="c-str">"example-container"</span>&gt;
+  &lt;div class=<span class="c-str">"parallax-item"</span> <span class="c-attr">string</span>=<span class="c-str">"parallax"</span> <span class="c-attr">string-factor</span>=<span class="c-str">"0.8"</span>&gt;
+    Welcome to StringTune!
+  &lt;/div&gt;
+  &lt;div class=<span class="c-str">"cursor-item"</span> <span class="c-attr">string</span>=<span class="c-str">"magnetic"</span> <span class="c-attr">string-cursor-target</span>=<span class="c-str">"target"</span>&gt;
+    Hover over me!
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="clarity-right">
+      <div class="warn-note" data-reveal>
+        <span class="warn-ico">⚠</span>
+        <p><strong>CDN users:</strong> reference the full namespace — <code class="inline">StringTune.StringTune.getInstance()</code>, <code class="inline">StringTune.StringParallax</code>…</p>
+      </div>
+
+      <div class="docs-when" data-reveal>
+        <p class="mono docs-label">When to use StringTune</p>
+        <ul class="check-list">
+          <li><span class="tick">✓</span>To create visually appealing websites with minimal effort.</li>
+          <li><span class="tick">✓</span>When you need customizable effects that are easy to integrate.</li>
+          <li><span class="tick">✓</span>To enhance user engagement through interactive animations.</li>
+        </ul>
+      </div>
+
+      <div class="demo-panel" data-reveal>
+        <div class="demo-stage">
+          <div class="demo-layer demo-layer--a" string="parallax" string-factor="0.85"><span class="kanji">調</span></div>
+          <div class="demo-layer demo-layer--b" string="parallax" string-factor="0.25"><span class="kanji">弦</span></div>
+          <span class="mono demo-tag" id="demoNote">connecting to cdn…</span>
+        </div>
+        <div class="demo-side">
+          <p class="mono docs-label">Live demo</p>
+          <p class="demo-text">The kanji above are driven by the <strong>real StringParallax</strong>, loaded from the CDN — scroll the page and watch them drift apart.</p>
+          <button class="btn btn--ghost demo-mag" type="button" string="magnetic" string-cursor-target="target" data-cursor="Magnet">Magnetic — hover me</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ FOOTER / TUNE ══════════════ -->
+  <footer class="footer" id="tune">
+    <p class="mono footer-tag" data-reveal>final form</p>
+    <a class="footer-giant" href="#top" data-cursor="Top" aria-label="Back to top">
+      <span data-split="chars" data-reveal-lines>TUNE</span>
+    </a>
+    <div class="footer-cta" data-reveal>
+      <p class="footer-line">Get started with StringTune today — and elevate your web experiences to <em class="serif">the next level.</em></p>
+      <div class="footer-btns">
+        <a class="btn btn--red" href="https://tympanus.net/codrops/2025/03/19/stringtune-the-javascript-library-born-from-a-design-agencys-workflow/" target="_blank" rel="noopener" data-magnetic data-pluck>Learn How <span aria-hidden="true">↗</span></a>
+        <a class="btn btn--ghost" href="https://www.npmjs.com/package/@fiddle-digital/string-tune" target="_blank" rel="noopener" data-magnetic data-pluck>npm: @fiddle-digital/string-tune <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+
+    <div class="kw-wrap">
+      <p class="mono docs-label" data-reveal>npm keywords</p>
+      <div class="kw-cloud" aria-label="npm keywords">
+        <span class="kw-chip">scroll</span>
+        <span class="kw-chip">smooth</span>
+        <span class="kw-chip">css</span>
+        <span class="kw-chip">string</span>
+        <span class="kw-chip">typescript</span>
+        <span class="kw-chip">scrolling-library</span>
+        <span class="kw-chip">javascript-scroll</span>
+        <span class="kw-chip">parallax-effects</span>
+        <span class="kw-chip">scroll-animations</span>
+        <span class="kw-chip">web-animation</span>
+        <span class="kw-chip">scroll-interaction</span>
+        <span class="kw-chip">dynamic-scrolling</span>
+        <span class="kw-chip">custom-scrollbar</span>
+        <span class="kw-chip">scroll-progress</span>
+        <span class="kw-chip">responsive-scroll</span>
+        <span class="kw-chip">scroll-event-handling</span>
+        <span class="kw-chip">smooth-scrolling</span>
+        <span class="kw-chip">mobile-scroll</span>
+        <span class="kw-chip">desktop-scroll</span>
+        <span class="kw-chip">css-scroll-effects</span>
+        <span class="kw-chip">scroll-enhancement</span>
+        <span class="kw-chip">interactive-web-elements</span>
+        <span class="kw-chip">viewport-scroll</span>
+        <span class="kw-chip">scroll-control</span>
+      </div>
+    </div>
+
+    <div class="footer-bottom mono">
+      <span>© 2026 — study recreation</span>
+      <span>original concept &amp; library: <a href="https://string-tune.fiddle.digital/" target="_blank" rel="noopener">Fiddle.Digital</a> · <a href="https://fiddle.digital/" target="_blank" rel="noopener">fiddle.digital</a></span>
+      <span>this page: original code &amp; artwork</span>
+    </div>
+  </footer>
+
+</main>
+</div><!-- /st-smooth -->
+
+<!-- floating buttons -->
+<button class="to-top" id="toTop" type="button" aria-label="Back to top" data-magnetic>↑</button>
+
+<div class="cookie" id="cookie" role="dialog" aria-label="Cookies">
+  <p>This website collects cookies to deliver a better user experience and analyze traffic; we never collect any personal data. <a href="#" id="cookieMore">Customize settings</a></p>
+  <div class="cookie-actions">
+    <button class="btn btn--ghost" id="cookieReject" type="button">Reject all</button>
+    <button class="btn btn--red" id="cookieAccept" type="button">Accept all</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@fiddle-digital/string-tune@latest/dist/index.js" defer></script>
+<script src="js/tune.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
