@@ -1,0 +1,774 @@
+/* BASIC RESET */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #333;
+    background-color: #f9f9f9;
+    line-height: 1.6;
+}
+
+a {
+    text-decoration: none;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+h1, h2, h3, h4 {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+
+/* HEADER */
+
+header {
+    background-color: #1a1a2e;
+    color: white;
+}
+
+.header-inner {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 25px 7%;
+}
+
+.logo {
+    width: 90px;
+    height: 70px;
+    border-radius: 10px;
+    background-color: white;
+    padding: 5px;
+}
+
+.college-name h1 {
+    margin: 0;
+    font-size: 28px;
+    color: #ffd84d;
+}
+
+.college-name p {
+    margin: 5px 0 0 0;
+    color: #ccc;
+    font-size: 14px;
+}
+
+
+/* NAVIGATION (fixed on top when scrolling) */
+
+.main-nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    background-color: #16213e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.main-nav a {
+    padding: 15px 25px;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+    transition: background-color 0.3s;
+}
+
+.main-nav a:hover {
+    background-color: #635bff;
+}
+
+
+/* NOTIFICATION */
+
+.notification {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 7%;
+    background-color: #ffd84d;
+    color: #1a1a2e;
+}
+
+.note-label {
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+
+/* COMMON SECTION STYLE */
+
+.section {
+    padding: 70px 7%;
+}
+
+.alt {
+    background-color: #ffffff;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 36px;
+    margin: 0 0 8px 0;
+    color: #1a1a2e;
+}
+
+.section-title.light {
+    color: white;
+}
+
+/* small coloured line under heading */
+.title-line {
+    display: block;
+    width: 70px;
+    height: 5px;
+    margin: 0 auto 40px auto;
+    background-color: #ffd84d;
+    border-radius: 3px;
+}
+
+.center {
+    text-align: center;
+}
+
+
+/* TWO COLUMN LAYOUT */
+
+.two-columns {
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.col {
+    flex: 1;
+    min-width: 280px;
+}
+
+
+/* HOME / HERO */
+
+.home {
+    background-color: #1a1a2e;
+    background-image: linear-gradient(rgba(26, 26, 46, 0.85),
+                        rgba(26, 26, 46, 0.85)), url("college.jpg");
+    background-size: cover;
+    background-position: center;
+    color: white;
+    padding: 90px 7%;
+}
+
+.home-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 40px;
+    flex-wrap: wrap;
+}
+
+.home-text {
+    max-width: 620px;
+}
+
+.tag-line {
+    display: inline-block;
+    margin: 0 0 15px 0;
+    padding: 6px 15px;
+    background-color: #635bff;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.home-text h2 {
+    font-size: 50px;
+    text-align: left;
+    color: white;
+    margin: 0 0 15px 0;
+}
+
+.home-text p {
+    font-size: 18px;
+    color: #ddd;
+    margin: 0 0 30px 0;
+}
+
+.home-card {
+    width: 310px;
+    padding: 30px;
+    background-color: white;
+    color: #1a1a2e;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.home-card h3 {
+    margin-top: 0;
+    color: #635bff;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+.home-card p {
+    margin: 12px 0;
+    font-size: 15px;
+}
+
+
+/* BUTTONS */
+
+.btn {
+    display: inline-block;
+    padding: 14px 30px;
+    background-color: #ffd84d;
+    color: #1a1a2e;
+    font-weight: bold;
+    font-size: 16px;
+    border-radius: 30px;
+    margin-right: 10px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.btn:hover {
+    background-color: #635bff;
+    color: white;
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 2px solid white;
+    color: white;
+}
+
+.btn-outline:hover {
+    background-color: white;
+    color: #1a1a2e;
+}
+
+
+/* STATS BAR */
+
+.stats-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    padding: 35px 7%;
+    background-color: #16213e;
+    color: white;
+}
+
+.stat {
+    text-align: center;
+    padding: 10px 25px;
+}
+
+.stat strong {
+    display: block;
+    font-size: 35px;
+    color: #ffd84d;
+}
+
+.stat p {
+    margin: 5px 0 0 0;
+    font-size: 15px;
+    color: #ccc;
+}
+
+
+/* ABOUT */
+
+.tick-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0 0 0;
+}
+
+.tick-list li {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background-color: #eeeeff;
+    border-left: 4px solid #635bff;
+    border-radius: 5px;
+    font-size: 15px;
+}
+
+.tick-list.light li {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-left-color: #ffd84d;
+    color: white;
+}
+
+.message-box {
+    background-color: #1a1a2e;
+    color: white;
+    padding: 35px;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.message-box h3 {
+    margin-top: 0;
+    color: #ffd84d;
+}
+
+.principal-name {
+    font-weight: bold;
+    color: #ffd84d;
+    text-align: right;
+}
+
+
+/* COURSE CARDS */
+
+.course-grid {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 40px;
+}
+
+.course-card {
+    flex: 1;
+    min-width: 200px;
+    max-width: 260px;
+    padding: 30px 20px;
+    text-align: center;
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s;
+}
+
+.course-card:hover {
+    transform: translateY(-6px);
+}
+
+.course-card h4 {
+    margin: 0 0 10px 0;
+    font-size: 30px;
+}
+
+.course-card p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.course-blue {
+    background-color: #635bff;
+}
+
+.course-purple {
+    background-color: #7b4bd6;
+}
+
+.course-green {
+    background-color: #15946f;
+}
+
+.course-orange {
+    background-color: #e87525;
+}
+
+
+/* TABLE */
+
+table {
+    width: 100%;
+    max-width: 700px;
+    margin: 20px auto 0 auto;
+    border-collapse: collapse;
+    background-color: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+th,
+td {
+    padding: 14px 20px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #1a1a2e;
+    color: white;
+    font-size: 16px;
+}
+
+tr:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+tr:hover {
+    background-color: #eeeeff;
+}
+
+
+/* EVENT CARDS */
+
+.card-grid {
+    display: flex;
+    gap: 25px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.card {
+    flex: 1;
+    min-width: 260px;
+    max-width: 360px;
+    padding: 30px;
+    background-color: white;
+    border-top: 5px solid #635bff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+}
+
+.card-badge {
+    display: inline-block;
+    padding: 5px 14px;
+    background-color: #eeeeff;
+    color: #635bff;
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 15px;
+    margin-bottom: 15px;
+}
+
+.card h3 {
+    margin-top: 0;
+    color: #1a1a2e;
+}
+
+.card p {
+    color: #555;
+    font-size: 15px;
+}
+
+
+/* GALLERY */
+
+.gallery-grid {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.gallery-grid img {
+    flex: 1;
+    min-width: 220px;
+    max-width: 320px;
+    height: 230px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s;
+}
+
+.gallery-grid img:hover {
+    transform: scale(1.04);
+}
+
+
+/* MEDIA */
+
+.media-box {
+    background-color: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.media-box h3 {
+    margin-top: 0;
+    color: #635bff;
+}
+
+.media-box video {
+    max-width: 100%;
+}
+
+
+/* ADMISSION */
+
+.admission {
+    background-color: #1a1a2e;
+    color: white;
+}
+
+.admission h3 {
+    color: #ffd84d;
+}
+
+.admission form {
+    padding: 35px;
+    background-color: white;
+    color: #333;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.admission form label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #1a1a2e;
+}
+
+.admission input,
+.admission select,
+.admission textarea {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 18px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: Arial, sans-serif;
+}
+
+.admission input:focus,
+.admission select:focus,
+.admission textarea:focus {
+    outline: none;
+    border-color: #635bff;
+}
+
+.radio-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.radio-row input {
+    width: auto;
+    margin-bottom: 0;
+}
+
+.admission .radio-label {
+    display: inline;
+    font-weight: normal;
+    margin-bottom: 0;
+}
+
+.admission button {
+    width: 100%;
+    padding: 14px;
+    background-color: #ffd84d;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.admission button:hover {
+    background-color: #635bff;
+    color: white;
+}
+
+#formMessage {
+    text-align: center;
+    font-weight: bold;
+    color: #15946f;
+    margin-top: 10px;
+}
+
+
+/* CONTACT */
+
+.contact-card {
+    background-color: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.contact-card p {
+    margin: 0 0 18px 0;
+    font-size: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 12px;
+}
+
+.contact-card a {
+    color: #635bff;
+    font-weight: bold;
+}
+
+.contact-card a:hover {
+    text-decoration: underline;
+}
+
+#contact iframe {
+    width: 100%;
+    height: 300px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+
+/* FOOTER */
+
+footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    padding: 30px 7%;
+    background-color: #1a1a2e;
+    color: white;
+    border-top: 5px solid #ffd84d;
+}
+
+footer p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #ccc;
+}
+
+
+/* MOBILE RESPONSIVE */
+
+@media (max-width: 600px) {
+
+    /* smaller padding so content uses full width */
+    .section {
+        padding: 45px 5%;
+    }
+
+    .header-inner {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px 5%;
+    }
+
+    .college-name h1 {
+        font-size: 21px;
+    }
+
+    .main-nav {
+        flex-direction: column;
+    }
+
+    .main-nav a {
+        border-bottom: 1px solid #333;
+        padding: 12px;
+    }
+
+    .notification {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+        padding: 10px 5%;
+    }
+
+    .home {
+        padding: 50px 5%;
+    }
+
+    .home-inner {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .home-text h2 {
+        font-size: 30px;
+        text-align: center;
+    }
+
+    .home-text p {
+        font-size: 16px;
+    }
+
+    .home-card {
+        width: 100%;
+    }
+
+    .btn {
+        margin: 0 auto 10px auto;
+    }
+
+    .stats-bar {
+        padding: 25px 5%;
+    }
+
+    .stat {
+        min-width: 45%;
+        padding: 10px;
+    }
+
+    .stat strong {
+        font-size: 26px;
+    }
+
+    .section-title {
+        font-size: 28px;
+    }
+
+    .course-card,
+    .card {
+        min-width: 100%;
+        max-width: 100%;
+    }
+
+    .gallery-grid img {
+        min-width: 100%;
+        max-width: 100%;
+        height: 200px;
+    }
+
+    /* video fits the phone screen */
+    .media-box video {
+        width: 100%;
+        height: auto;
+    }
+
+    .admission form {
+        padding: 22px;
+    }
+
+    /* table fits smaller screens */
+    th,
+    td {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+
+    .two-columns .col {
+        min-width: 100%;
+    }
+
+    /* map fits the phone screen */
+    #contact iframe {
+        height: 250px;
+    }
+
+    footer {
+        flex-direction: column;
+        text-align: center;
+        padding: 25px 5%;
+    }
+}
