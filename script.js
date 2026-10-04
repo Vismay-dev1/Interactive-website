@@ -183,6 +183,8 @@
   const demoScore = $("#demo-score");
   const demoScanButton = $("#demo-scan-button");
   const scanResults = $("#scan-results");
+  const reportEmpty = $("#report-empty");
+  const reportLive = $("#report-live");
   const heroForm = $("#hero-scan-form");
   let activeSource = "website";
   let selectedFiles = [];
@@ -455,6 +457,26 @@
     }
   };
 
+  const renderLiveReport = (result) => {
+    if (!reportEmpty || !reportLive || result.error) return;
+    reportEmpty.hidden = true;
+    reportLive.hidden = false;
+    const title = $("#report-title");
+    const source = $("#report-source");
+    const count = $("#report-observation-count");
+    const completed = $("#report-completed-at");
+    const status = $("#report-status");
+    const findingList = $("#report-finding-list");
+    const notes = $("#report-notes");
+    if (title) title.textContent = result.label || "Completed scan";
+    if (source) source.textContent = result.kind === "repository" ? "GitHub repository" : "Website passive check";
+    if (count) count.textContent = String(result.findings.length);
+    if (completed) completed.textContent = new Date().toLocaleString();
+    if (status) status.textContent = "Complete";
+    if (findingList) findingList.innerHTML = result.findings.length ? result.findings.map((item) => `<article><span class="severity ${escapeHtml(item.severity)}">${escapeHtml(item.severity.toUpperCase())}</span><div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p><small>${escapeHtml(item.evidence)}</small></div></article>`).join("") : `<div class="report-no-findings"><strong>No observations returned.</strong><p>No matching checks were detected in the selected source. This is not proof of security.</p></div>`;
+    if (notes) notes.innerHTML = result.notes?.length ? `<strong>Scan notes</strong><ul>${result.notes.map((note) => `<li>${escapeHtml(note)}</li>`).join("")}</ul>` : "";
+  };
+
   const renderScanResults = (result) => {
     if (!scanResults) return;
     const count = result.findings.length;
@@ -466,6 +488,7 @@
     const summaryCount = result.error ? "—" : `${count.toLocaleString()} observation${count === 1 ? "" : "s"}`;
     const emptyState = result.error ? "" : `<div class="scan-empty success"><span class="issue-empty-icon">✓</span><p>No matching patterns were detected in the inspected source. This is not proof that the source is secure.</p></div>`;
     scanResults.innerHTML = `<div class="scan-summary"><strong>${summaryCount}</strong><span>${result.kind === "website-blocked" ? "No target data was available to inspect." : "Derived from the selected source; no values were invented."}</span></div>${findings || emptyState}${notes ? `<div class="scan-notes"><strong>Scan notes</strong><ul>${notes}</ul></div>` : ""}`;
+    renderLiveReport(result);
   };
 
   const scanConfig = () => {
@@ -487,6 +510,7 @@
     resetStages();
     if (demoScanButton) { demoScanButton.disabled = true; demoScanButton.textContent = "Scanning…"; }
     if (scanResults) scanResults.innerHTML = `<div class="scan-empty"><span class="loader-dot"></span><p>Running safe checks against the selected source…</p></div>`;
+    if (reportEmpty && reportLive) { reportEmpty.hidden = false; reportLive.hidden = true; }
     if (demoTarget) demoTarget.textContent = config.mode === "website" ? new URL(config.value).origin : config.mode === "repository" ? config.value : `${config.files.length.toLocaleString()} local file${config.files.length === 1 ? "" : "s"}`;
     if (scanStatus) scanStatus.textContent = "Preparing scan…";
     try {
