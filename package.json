@@ -1,0 +1,15 @@
+{
+  "name": "breachai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BREACHAI authorized web security testing platform",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "check": "node --check server/index.js && node --check server/scanner.js && node --check server/store.js && node --check script.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

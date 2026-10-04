@@ -356,6 +356,8 @@
   };
 
   const scanGithubRepository = async (value) => {
+    const serverResult = await scanThroughApi("github", value);
+    if (serverResult) return serverResult;
     const { owner, repo } = parseGithubRepository(value);
     const base = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
     const metadata = await fetchGithubJson(base);
@@ -389,7 +391,40 @@
     return { kind: "repository", label: `${owner}/${repo} · ${scanned} source file${scanned === 1 ? "" : "s"}`, findings, notes, metadata };
   };
 
+  const scanThroughApi = async (sourceType, value) => {
+    let health;
+    try {
+      health = await fetch("/api/health", { cache: "no-store" });
+    } catch {
+      return null;
+    }
+    if (!health.ok) return null;
+    const sessionToken = localStorage.getItem("breachai_session");
+    const response = await fetch("/api/scans", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...(sessionToken ? { authorization: `Bearer ${sessionToken}` } : {}) },
+      body: JSON.stringify({ sourceType, target: value, authorizationConfirmed: true, authorizationText: "I confirm that I own this target or have explicit authorization to test it." })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "The scan server rejected the request.");
+    const scanId = payload.scan?.id;
+    if (!scanId) throw new Error("The scan server did not return a scan id.");
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const statusResponse = await fetch(`/api/scans/${encodeURIComponent(scanId)}`, { cache: "no-store" });
+      const statusPayload = await statusResponse.json().catch(() => ({}));
+      if (!statusResponse.ok) throw new Error(statusPayload.error || "Could not read scan status.");
+      const scan = statusPayload.scan;
+      if (scanStatus && scan?.progress?.message) scanStatus.textContent = scan.progress.message;
+      if (scan?.status === "done") return { kind: sourceType === "github" ? "repository" : "website", label: `Server scan · ${value}`, findings: scan.findings || [], notes: scan.notes || [], metadata: scan.metadata || null };
+      if (scan?.status === "failed") throw new Error(scan.error || "The server-side scan failed.");
+      await new Promise((resolve) => window.setTimeout(resolve, 500));
+    }
+    throw new Error("The scan server did not finish within the browser wait window.");
+  };
+
   const scanWebsite = async (value) => {
+    const serverResult = await scanThroughApi("website", value);
+    if (serverResult) return serverResult;
     const url = new URL(value);
     if (!/^https?:$/.test(url.protocol)) throw new Error("Only http and https URLs are supported.");
     const controller = new AbortController();
@@ -528,7 +563,7 @@
   $$(".auth-tab").forEach((tab) => tab.addEventListener("click", () => setAuthTab(tab.dataset.tab)));
   $(".modal-close")?.addEventListener("click", closeAuth);
   modal?.addEventListener("click", (event) => { if (event.target === modal) closeAuth(); });
-  $$(".auth-form").filter((form) => form.id !== "project-form").forEach((form) => form.addEventListener("submit", (event) => {
+  $$(".auth-form").filter((form) => form.id !== "project-form").forEach((form) => form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const feedback = $(".form-feedback", form);
     const inputs = $$('input:not([type="checkbox"])', form);
@@ -547,9 +582,22 @@
       feedback.textContent = "Please confirm authorized use before creating an account.";
       return;
     }
-    feedback.textContent = "Frontend demo only — no account was created.";
-    showToast(feedback.textContent);
-    window.setTimeout(closeAuth, 1100);
+    feedback.textContent = "Contacting the local API…";
+    try {
+      const endpoint = form.dataset.form === "signup" ? "/api/auth/signup" : "/api/auth/login";
+      const body = form.dataset.form === "signup"
+        ? { name: $("#signup-name").value.trim(), email: $("#signup-email").value.trim(), password: $("#signup-password").value }
+        : { email: $("#signin-email").value.trim(), password: $("#signin-password").value };
+      const response = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "The API rejected the request.");
+      if (payload.token) localStorage.setItem("breachai_session", payload.token);
+      feedback.textContent = form.dataset.form === "signup" ? "Account created. You can now run authorized scans." : "Signed in. Your scan requests will be associated with this session.";
+      showToast(feedback.textContent);
+      window.setTimeout(closeAuth, 1100);
+    } catch (error) {
+      feedback.textContent = error.message || "The API is unavailable. No account was created.";
+    }
   }));
   $(".forgot-link")?.addEventListener("click", (event) => { event.preventDefault(); showToast("No password reset is wired to this static demo."); });
 

@@ -21,15 +21,22 @@ If GitHub is unavailable or rate-limited, the interface shows an unavailable sta
 
 ## Run locally
 
-No build step is required:
+The real API and scan worker run with Node.js 20+ and have no install step:
 
 ```bash
-python3 -m http.server 4173 --bind 0.0.0.0
+npm start
 ```
 
-Open `http://localhost:4173` in a browser.
+Open `http://localhost:4173` in a browser. For a static-only preview, `python3 -m http.server 4173` still works; website scans then fall back to browser CORS behavior instead of using the server worker.
 
-The public GitHub API is requested directly by the browser. A network connection is required to populate live repository values.
+The Node server provides authorization-gated scan jobs and persists development state in `.data/store.json` (ignored by git). A network connection is required for GitHub values and remote scans.
+
+Useful checks:
+
+```bash
+npm run check
+curl http://localhost:4173/api/health
+```
 
 ## Scan modes and responsible use
 

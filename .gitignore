@@ -1,0 +1,10 @@
+# Runtime state
+.data/
+.env
+.env.*
+!.env.example
+
+# Local dependencies / output
+node_modules/
+coverage/
+.DS_Store

@@ -19,9 +19,15 @@ of a fabricated value.
 
 RUN LOCALLY
 -----------
-python3 -m http.server 4173 --bind 0.0.0.0
+The real API and safe scan worker run with Node.js 20+:
 
-Then open http://localhost:4173. A network connection is required for live GitHub values.
+npm start
+
+Then open http://localhost:4173. The server exposes authorization-gated scan jobs,
+status polling and development persistence in .data/store.json. A network connection
+is required for live GitHub values and remote scans.
+
+npm run check
 
 RESPONSIBLE USE
 ---------------
