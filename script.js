@@ -187,9 +187,8 @@
   let activeSource = "website";
   let selectedFiles = [];
   let scanRunning = false;
-  let scanTimer;
-
-  const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+  let activeStageIndex = -1;
+  const stageStartedAt = new Map();
   const setSource = (source) => {
     activeSource = source;
     $$(".scan-source-tab").forEach((tab) => {
@@ -219,9 +218,10 @@
   $("#source-folder")?.addEventListener("change", (event) => mergeFiles(event.target.files));
 
   const resetStages = () => {
-    window.clearInterval(scanTimer);
+    activeStageIndex = -1;
+    stageStartedAt.clear();
     stages.forEach((stage) => {
-      stage.classList.remove("done", "warning", "running");
+      stage.classList.remove("done", "warning", "running", "error");
       $(".stage-status", stage).textContent = "○";
       $("time", stage).textContent = "--";
     });
@@ -229,22 +229,29 @@
     if (scanPercent) scanPercent.textContent = "0%";
   };
   const setStage = (index, status = "running") => {
+    activeStageIndex = Math.min(index, stages.length - 1);
     stages.forEach((stage, stageIndex) => {
-      stage.classList.remove("done", "warning", "running");
+      stage.classList.remove("done", "warning", "running", "error");
+      const started = stageStartedAt.get(stageIndex);
       if (stageIndex < index || (status === "done" && stageIndex === index)) {
         stage.classList.add("done");
         $(".stage-status", stage).textContent = "✓";
-        $("time", stage).textContent = "done";
+        $("time", stage).textContent = started ? `${Math.max(1, Math.round(performance.now() - started))}ms` : "done";
       } else if (stageIndex === index && status === "running") {
         stage.classList.add("running");
+        stageStartedAt.set(stageIndex, performance.now());
         $(".stage-status", stage).textContent = "◌";
         $("time", stage).textContent = "…";
+      } else if (stageIndex === index && status === "error") {
+        stage.classList.add("error");
+        $(".stage-status", stage).textContent = "!";
+        $("time", stage).textContent = started ? `${Math.max(1, Math.round(performance.now() - started))}ms` : "stopped";
       } else {
         $(".stage-status", stage).textContent = "○";
         $("time", stage).textContent = "--";
       }
     });
-    const percent = Math.min(100, Math.round((index / stages.length) * 100));
+    const percent = status === "done" && index >= stages.length ? 100 : Math.min(99, Math.round((index / stages.length) * 100));
     if (progress) progress.style.width = `${percent}%`;
     if (scanPercent) scanPercent.textContent = `${percent}%`;
   };
@@ -448,21 +455,26 @@
     if (demoTarget) demoTarget.textContent = config.mode === "website" ? new URL(config.value).origin : config.mode === "repository" ? config.value : `${config.files.length.toLocaleString()} local file${config.files.length === 1 ? "" : "s"}`;
     if (scanStatus) scanStatus.textContent = "Preparing scan…";
     try {
-      setStage(0); await wait(120);
-      setStage(1); if (scanStatus) scanStatus.textContent = "Reading selected source…";
+      setStage(0);
+      if (scanStatus) scanStatus.textContent = "Authorization confirmed; preparing source…";
+      setStage(1);
+      if (scanStatus) scanStatus.textContent = "Reading selected source…";
       const result = config.mode === "website" ? await scanWebsite(config.value) : config.mode === "repository" ? await scanGithubRepository(config.value) : await scanLocalFiles(config.files);
-      setStage(2); if (scanStatus) scanStatus.textContent = "Running safe checks…"; await wait(120);
-      setStage(3); if (scanStatus) scanStatus.textContent = "Reviewing evidence…"; await wait(120);
-      setStage(4); if (scanStatus) scanStatus.textContent = "Building findings…"; await wait(120);
-      setStage(stages.length, "done");
+      setStage(2);
+      if (scanStatus) scanStatus.textContent = "Safe checks completed against the source.";
+      setStage(3);
+      if (scanStatus) scanStatus.textContent = "Redacting sensitive evidence…";
+      setStage(4);
+      if (scanStatus) scanStatus.textContent = "Building source-derived results…";
       renderScanResults(result);
+      setStage(stages.length, "done");
       if (scanStatus) scanStatus.textContent = `Complete · ${result.label}`;
       if (scanPercent) scanPercent.textContent = "100%";
       if (progress) progress.style.width = "100%";
-      showToast(`${result.findings.length.toLocaleString()} source-derived observation${result.findings.length === 1 ? "" : "s"} returned.`);
+      showToast(`${result.error ? "No readable target data" : `${result.findings.length.toLocaleString()} source-derived observation${result.findings.length === 1 ? "" : "s"}`} returned.`);
     } catch (error) {
-      setStage(stages.length, "done");
-      if (scanStatus) scanStatus.textContent = "Scan stopped · input or API error";
+      setStage(activeStageIndex < 0 ? 0 : activeStageIndex, "error");
+      if (scanStatus) scanStatus.textContent = "Scan stopped · no result was created";
       if (scanResults) scanResults.innerHTML = `<div class="issue-empty"><strong>Scan could not start.</strong><p>${escapeHtml(error.message || "Check the source and try again.")}</p></div>`;
       if (demoScore) demoScore.textContent = "—";
       showToast(error.message || "Scan could not start.");
