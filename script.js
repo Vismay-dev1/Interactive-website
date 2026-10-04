@@ -191,6 +191,17 @@
   let scanRunning = false;
   let activeStageIndex = -1;
   const stageStartedAt = new Map();
+  const updateScanAccountGate = () => {
+    const gate = $("#scan-account-gate");
+    if (!gate) return;
+    const signedIn = Boolean(localStorage.getItem("breachai_session"));
+    const strong = $("strong", gate);
+    const small = $("small", gate);
+    if (strong) strong.textContent = signedIn ? "Signed in for server scans." : "Sign in required for server scans.";
+    if (small) small.textContent = signedIn ? "Your authorized scan requests can use the protected API." : "Website and GitHub scans run through the protected API. Local files remain browser-only.";
+    gate.classList.toggle("signed-in", signedIn);
+  };
+  updateScanAccountGate();
   const setSource = (source) => {
     activeSource = source;
     $$(".scan-source-tab").forEach((tab) => {
@@ -536,6 +547,7 @@
       if (scanStatus) scanStatus.textContent = "Scan stopped · no result was created";
       if (scanResults) scanResults.innerHTML = `<div class="issue-empty"><strong>Scan could not start.</strong><p>${escapeHtml(error.message || "Check the source and try again.")}</p></div>`;
       if (demoScore) demoScore.textContent = "—";
+      if (/sign in/i.test(error.message || "")) openAuth("signin");
       showToast(error.message || "Scan could not start.");
     } finally {
       scanRunning = false;
@@ -616,6 +628,7 @@
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "The API rejected the request.");
       if (payload.token) localStorage.setItem("breachai_session", payload.token);
+      updateScanAccountGate();
       feedback.textContent = form.dataset.form === "signup" ? "Account created. You can now run authorized scans." : "Signed in. Your scan requests will be associated with this session.";
       showToast(feedback.textContent);
       window.setTimeout(closeAuth, 1100);
