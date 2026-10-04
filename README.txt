@@ -1,46 +1,32 @@
-MORAZHA-STYLE COLLEGE WEBSITE
-================================
+BREACHAI OPEN-SOURCE WEBSITE
+============================
 
-This is a BCA student case-study website created using the concepts from the syllabus.
+This repository contains the BREACHAI frontend product experience: an open-source,
+frontend-only website for an authorized AI web security testing platform.
 
-FILES
------
-index.html     -> Main website
-style.css      -> Website design and responsive CSS
-script.js      -> JavaScript validation
-register.php   -> PHP form handling
- db.php        -> MySQL connection
- database.sql  -> Database and table creation
+The site does not run a security scanner, contact target URLs, create accounts, store
+projects, or generate security findings. The scan and project forms are UI-only flows.
+They require explicit authorization confirmation and do not send requests anywhere.
 
-DESIGN
-------
-The design is modern, colourful and student-friendly rather than copying the old-style
-college website layout directly.
+LIVE GITHUB DATA
+----------------
+The page reads public repository metadata from the GitHub API, including stars, forks,
+open issues, watchers, repository timestamps, public issues and public contributors.
+When GitHub data is unavailable, the interface shows a dash or unavailable state instead
+of a fabricated value.
 
-The notification area intentionally uses the HTML <marquee> tag as requested.
+RUN LOCALLY
+-----------
+python3 -m http.server 4173 --bind 0.0.0.0
 
-The HTML, CSS, JavaScript and PHP code are deliberately spaced and sectioned so that
-a student can read, debug and modify the code easily in Notepad.
+Then open http://localhost:4173. A network connection is required for live GitHub values.
 
-SYLLABUS CONNECTION
--------------------
-HTML  -> headings, paragraphs, links, images/sections, tables, forms, iframe
-CSS   -> selectors, colours, typography, box model, borders, backgrounds, hover,
-         flexbox/grid layout and media queries
-JS    -> variables, arrays, function, condition, regular expression, DOM and form validation
-PHP   -> syntax, variables, form handling, conditions and MySQL connection
-MySQL -> database and student registration table
+RESPONSIBLE USE
+---------------
+Only assess systems you own or have explicit permission to test. This repository is not
+an unrestricted offensive security tool.
 
-RUNNING THE WEBSITE
--------------------
-1. You can double-click index.html to see the visual website.
-2. PHP and MySQL require a local server such as XAMPP.
-3. Import database.sql into MySQL/phpMyAdmin.
-4. Put the folder inside the XAMPP htdocs folder.
-5. Start Apache and MySQL.
-6. Open the website through localhost.
-
-NOTE
-----
-register.php is intentionally kept simple for college-level learning. For a real
-production website, prepared SQL statements and stronger security should be used.
+CONTRIBUTE
+----------
+Fork the repository, make a focused change, and open a pull request. Do not add fake
+customers, owners, reviews, scan counts or security metrics.

@@ -3,8 +3,44 @@
 
   const $ = (selector, scope = document) => scope.querySelector(selector);
   const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
+  const REPOSITORY = "Vismay-dev1/Interactive-website";
+  const GITHUB_API = `https://api.github.com/repos/${REPOSITORY}`;
 
-  // Keep the experience keyboard-friendly and add a compact mobile navigation.
+  const escapeHtml = (value = "") => String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+  const formatCount = (value) => Number.isFinite(Number(value)) ? Number(value).toLocaleString() : "—";
+  const formatDate = (value) => {
+    if (!value) return "—";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
+    const seconds = Math.round((date.getTime() - Date.now()) / 1000);
+    const absolute = Math.abs(seconds);
+    const units = [[31536000, "year"], [2592000, "month"], [604800, "week"], [86400, "day"], [3600, "hour"], [60, "minute"]];
+    for (const [unit, label] of units) {
+      if (absolute >= unit) {
+        const amount = Math.round(seconds / unit);
+        return new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(amount, label);
+      }
+    }
+    return "just now";
+  };
+  const writeAll = (attribute, value) => $$(`[${attribute}]`).forEach((element) => { element.textContent = value; });
+  const setGithubStatus = (key, value) => $$(`[data-github-status="${key}"]`).forEach((element) => { element.textContent = value; });
+  const markUnavailable = (message = "Unavailable") => {
+    ["stars", "forks", "issues", "watchers", "relative"].forEach((key) => {
+      writeAll(`data-github="${key}"`, "—");
+      setGithubStatus(key, message);
+    });
+    ["description", "branch", "language", "license", "pushed", "updated", "created"].forEach((key) => writeAll(`data-repo="${key}"`, "—"));
+    writeAll("data-repo-name", REPOSITORY);
+  };
+
+  // Responsive navigation.
   const menuToggle = $(".menu-toggle");
   const mobileNav = $(".mobile-nav");
   const closeMobileNav = () => {
@@ -20,8 +56,9 @@
     mobileNav.setAttribute("aria-hidden", String(open));
   });
   $$(".mobile-nav a").forEach((link) => link.addEventListener("click", closeMobileNav));
+  window.addEventListener("resize", () => { if (window.innerWidth > 850) closeMobileNav(); });
 
-  // Reveal content as it enters the viewport. Reduced motion is handled in CSS.
+  // Section reveals.
   const revealItems = $$(".reveal");
   if ("IntersectionObserver" in window) {
     const revealObserver = new IntersectionObserver((entries, observer) => {
@@ -37,34 +74,7 @@
     revealItems.forEach((item) => item.classList.add("visible"));
   }
 
-  // Count platform metrics when they first become visible.
-  const countMetric = (element) => {
-    if (element.dataset.counted === "true") return;
-    element.dataset.counted = "true";
-    const target = Number(element.dataset.count);
-    const suffix = element.querySelector("span")?.outerHTML || "";
-    const duration = 900;
-    const start = performance.now();
-    const tick = (now) => {
-      const progress = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const value = Math.floor(target * eased);
-      element.innerHTML = `${value.toLocaleString()}${suffix}`;
-      if (progress < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  };
-  const metricObserver = "IntersectionObserver" in window ? new IntersectionObserver((entries, observer) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        countMetric(entry.target);
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.75 }) : null;
-  $$('[data-count]').forEach((metric) => metricObserver ? metricObserver.observe(metric) : countMetric(metric));
-
-  // Lightweight toast notifications for demo-only actions.
+  // Toast notifications for actions that are intentionally not backed by a server.
   const toast = $("#toast");
   let toastTimeout;
   const showToast = (message) => {
@@ -74,45 +84,111 @@
     window.clearTimeout(toastTimeout);
     toastTimeout = window.setTimeout(() => toast.classList.remove("visible"), 3800);
   };
-  $$(".toast-trigger").forEach((trigger) => trigger.addEventListener("click", () => showToast(trigger.dataset.toast || "Action completed in the demo workspace.")));
+  $$(".toast-trigger").forEach((trigger) => trigger.addEventListener("click", () => showToast(trigger.dataset.toast || "This frontend action is not connected to a backend.")));
 
-  // Scan simulation shared by the hero form and the demo panel.
+  // Read real public repository data. There is deliberately no fabricated fallback.
+  const fetchGithubJson = async (url) => {
+    const response = await fetch(url, {
+      cache: "no-store",
+      headers: { Accept: "application/vnd.github+json" }
+    });
+    if (!response.ok) throw new Error(`GitHub request failed: ${response.status}`);
+    return response.json();
+  };
+
+  const renderRepository = (repo) => {
+    writeAll("data-repo-name", repo.full_name || REPOSITORY);
+    writeAll("data-repo=\"description\"", repo.description || "No description provided by the repository.");
+    writeAll("data-repo=\"branch\"", repo.default_branch || "Not specified");
+    writeAll("data-repo=\"language\"", repo.language || "Not specified");
+    writeAll("data-repo=\"license\"", repo.license?.spdx_id || repo.license?.name || "Not specified");
+    writeAll("data-repo=\"pushed\"", formatDate(repo.pushed_at));
+    writeAll("data-repo=\"updated\"", formatDate(repo.updated_at));
+    writeAll("data-repo=\"created\"", formatDate(repo.created_at));
+    writeAll("data-github=\"stars\"", formatCount(repo.stargazers_count));
+    writeAll("data-github=\"forks\"", formatCount(repo.forks_count));
+    writeAll("data-github=\"issues\"", formatCount(repo.open_issues_count));
+    writeAll("data-github=\"watchers\"", formatCount(repo.watchers_count));
+    writeAll("data-github=\"relative\"", formatDate(repo.pushed_at));
+    ["stars", "forks", "issues", "watchers", "relative"].forEach((key) => setGithubStatus(key, "Live from GitHub"));
+    writeAll("data-repo=\"issues-state\"", "Live");
+  };
+
+  const renderIssues = (issues) => {
+    const container = $("#github-issues-list");
+    if (!container) return;
+    const publicIssues = issues.filter((issue) => !issue.pull_request);
+    if (!publicIssues.length) {
+      container.innerHTML = `<div class="issue-empty"><span class="issue-empty-icon">✓</span><strong>No open issues returned.</strong><p>GitHub currently returned an empty public issue list for this repository. Nothing has been added to fill the space.</p><a class="text-link" href="https://github.com/${REPOSITORY}/issues" target="_blank" rel="noopener noreferrer">Open the issue tracker <span>↗</span></a></div>`;
+      return;
+    }
+    container.innerHTML = publicIssues.map((issue) => {
+      const labels = (issue.labels || []).map((label) => `<span class="issue-label">${escapeHtml(label.name)}</span>`).join("");
+      const body = issue.body ? escapeHtml(issue.body.replace(/\s+/g, " ").trim().slice(0, 170)) : "No description added.";
+      return `<article class="issue-card"><div class="issue-card-head"><span class="issue-state">OPEN</span><span class="issue-number">#${formatCount(issue.number)}</span><time>${escapeHtml(formatDate(issue.updated_at))}</time></div><h3><a href="${escapeHtml(issue.html_url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(issue.title)} <span aria-hidden="true">↗</span></a></h3><p>${body}${issue.body && issue.body.length > 170 ? "…" : ""}</p><div class="issue-card-foot"><span>Opened by ${escapeHtml(issue.user?.login || "GitHub user")}</span><span class="issue-labels">${labels}</span></div></article>`;
+    }).join("");
+  };
+
+  const renderContributors = (contributors) => {
+    const container = $("#contributors-list");
+    if (!container) return;
+    if (!contributors.length) {
+      container.innerHTML = `<div class="issue-empty compact"><strong>No contributor data returned.</strong><p>GitHub did not return public contributors for this repository.</p></div>`;
+      return;
+    }
+    container.innerHTML = contributors.map((contributor) => `<a class="contributor-row" href="${escapeHtml(contributor.html_url)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(contributor.avatar_url)}" alt="" loading="lazy" /><span><b>${escapeHtml(contributor.login)}</b><small>${formatCount(contributor.contributions)} public contributions</small></span><span aria-hidden="true">↗</span></a>`).join("");
+  };
+
+  const loadGithubData = async () => {
+    try {
+      const repo = await fetchGithubJson(GITHUB_API);
+      renderRepository(repo);
+    } catch (error) {
+      markUnavailable("Unavailable");
+      const description = $(".repo-description");
+      if (description) description.textContent = "GitHub metadata could not be loaded in this browser session.";
+    }
+
+    const [issuesResult, contributorsResult] = await Promise.allSettled([
+      fetchGithubJson(`${GITHUB_API}/issues?state=open&per_page=10&sort=updated`),
+      fetchGithubJson(`${GITHUB_API}/contributors?per_page=8`)
+    ]);
+    if (issuesResult.status === "fulfilled") {
+      renderIssues(issuesResult.value);
+      writeAll("data-repo=\"issues-state\"", "Live");
+    } else {
+      const issues = $("#github-issues-list");
+      if (issues) issues.innerHTML = `<div class="issue-empty"><strong>GitHub issue data is unavailable.</strong><p>Try opening the repository directly to inspect its current public issues.</p><a class="text-link" href="https://github.com/${REPOSITORY}/issues" target="_blank" rel="noopener noreferrer">Open GitHub issues <span>↗</span></a></div>`;
+      writeAll("data-repo=\"issues-state\"", "Unavailable");
+    }
+    if (contributorsResult.status === "fulfilled") {
+      renderContributors(contributorsResult.value);
+    } else {
+      const contributors = $("#contributors-list");
+      if (contributors) contributors.innerHTML = `<div class="issue-empty compact"><strong>Contributor data is unavailable.</strong><p>Open the public contributor graph on GitHub to inspect it directly.</p></div>`;
+    }
+  };
+  loadGithubData();
+  // Refresh public repository metadata periodically without inventing a fallback value.
+  window.setInterval(loadGithubData, 300000);
+
+  // UI-only scan flow. It never contacts the supplied URL and never produces findings.
   const stages = $$(".scan-stage");
   const progress = $("#scan-progress");
   const scanPercent = $("#scan-percent");
   const scanStatus = $("#scan-status");
   const demoTarget = $("#demo-target");
-  const demoScore = $("#demo-score");
   const demoScanButton = $("#demo-scan-button");
   let scanRunning = false;
   let scanTimer;
-
-  const resetScan = () => {
-    window.clearInterval(scanTimer);
-    stages.forEach((stage) => {
-      stage.classList.remove("done", "warning", "running");
-      $(".stage-status", stage).textContent = "○";
-      $("time", stage).textContent = "--";
-    });
-    if (progress) progress.style.width = "0%";
-    if (scanPercent) scanPercent.textContent = "0%";
-    if (scanStatus) scanStatus.textContent = "Ready to scan";
-    if (demoScore) demoScore.textContent = "—";
-    scanRunning = false;
-    if (demoScanButton) {
-      demoScanButton.disabled = false;
-      demoScanButton.innerHTML = "Run demo scan <span aria-hidden=\"true\">→</span>";
-    }
-  };
-
-  const startScan = (url = "https://example.com") => {
+  const startScan = (url = "") => {
     if (scanRunning) return;
     scanRunning = true;
-    const cleanUrl = url.replace(/^https?:\/\//i, "").replace(/\/$/, "") || "example.com";
+    const cleanUrl = url.trim() ? url.replace(/^https?:\/\//i, "").replace(/\/$/, "") : "No target selected";
     if (demoTarget) demoTarget.textContent = cleanUrl;
     if (demoScanButton) {
       demoScanButton.disabled = true;
-      demoScanButton.textContent = "Scanning…";
+      demoScanButton.textContent = "Previewing…";
     }
     stages.forEach((stage) => {
       stage.classList.remove("done", "warning", "running");
@@ -120,44 +196,40 @@
       $("time", stage).textContent = "--";
     });
     let current = -1;
-    const total = stages.length;
     const advance = () => {
       if (current >= 0 && stages[current]) {
         const prior = stages[current];
         prior.classList.remove("running");
-        const warning = current === 3 || current === 4;
-        prior.classList.add(warning ? "warning" : "done");
-        $(".stage-status", prior).textContent = warning ? "⚠" : "✓";
-        $("time", prior).textContent = `${current + 1}.${current + 2}s`;
+        prior.classList.add("done");
+        $(".stage-status", prior).textContent = "✓";
+        $("time", prior).textContent = "done";
       }
       current += 1;
-      if (current >= total) {
+      if (current >= stages.length) {
         window.clearInterval(scanTimer);
         if (progress) progress.style.width = "100%";
         if (scanPercent) scanPercent.textContent = "100%";
-        if (scanStatus) scanStatus.textContent = "Assessment complete · demo results ready";
-        if (demoScore) demoScore.textContent = "73";
+        if (scanStatus) scanStatus.textContent = "UI flow complete · no live data generated";
         scanRunning = false;
         if (demoScanButton) {
           demoScanButton.disabled = false;
-          demoScanButton.innerHTML = "Run again <span aria-hidden=\"true\">↻</span>";
+          demoScanButton.innerHTML = "Preview again <span aria-hidden=\"true\">↻</span>";
         }
-        showToast("Demo scan complete. Results are illustrative, not a live assessment.");
+        showToast("UI flow complete. No URL was contacted and no findings were created.");
         return;
       }
       const stage = stages[current];
       stage.classList.add("running");
       $(".stage-status", stage).textContent = "◌";
-      const percent = Math.round((current / total) * 100);
+      const percent = Math.round((current / stages.length) * 100);
       if (progress) progress.style.width = `${percent}%`;
       if (scanPercent) scanPercent.textContent = `${percent}%`;
-      if (scanStatus) scanStatus.textContent = stage.querySelector("strong")?.textContent || "Analyzing…";
+      if (scanStatus) scanStatus.textContent = stage.querySelector("strong")?.textContent || "Previewing…";
     };
     advance();
-    scanTimer = window.setInterval(advance, 820);
+    scanTimer = window.setInterval(advance, 650);
   };
-
-  demoScanButton?.addEventListener("click", () => startScan($("#demo-target")?.textContent ? `https://${$("#demo-target").textContent}` : undefined));
+  demoScanButton?.addEventListener("click", () => startScan(demoTarget?.textContent === "No target selected" ? "" : demoTarget?.textContent || ""));
 
   const heroForm = $("#hero-scan-form");
   heroForm?.addEventListener("submit", (event) => {
@@ -185,22 +257,7 @@
     window.setTimeout(() => startScan(url.value.trim()), 500);
   });
 
-  // Expandable vulnerability cards and safe demo action feedback.
-  $$(".finding-toggle").forEach((toggle) => toggle.addEventListener("click", () => {
-    const card = toggle.closest(".finding-card");
-    const expanded = card.classList.toggle("expanded");
-    toggle.setAttribute("aria-expanded", String(expanded));
-    toggle.querySelector("span:not(.sr-only)").textContent = expanded ? "⌃" : "⌄";
-  }));
-  $$(".review-button").forEach((button) => button.addEventListener("click", () => {
-    button.classList.toggle("reviewed");
-    button.textContent = button.classList.contains("reviewed") ? "✓ Reviewed" : "Mark as reviewed";
-    showToast(button.classList.contains("reviewed") ? "Finding marked as reviewed in the demo." : "Review status reset in the demo.");
-  }));
-  $$(".evidence-trigger").forEach((button) => button.addEventListener("click", () => showToast("Safe evidence preview opened. Sensitive values are always redacted.")));
-  $$(".recommendation-trigger").forEach((button) => button.addEventListener("click", () => showToast("Developer recommendation ready in the demo report.")));
-
-  // Auth modal: both forms are intentionally front-end demo flows.
+  // Auth modal: forms validate locally and explicitly tell users no account is created here.
   const modal = $("#auth-modal");
   let lastFocusedElement;
   const setAuthTab = (tab) => {
@@ -227,10 +284,7 @@
   $$(".auth-tab").forEach((tab) => tab.addEventListener("click", () => setAuthTab(tab.dataset.tab)));
   $(".modal-close")?.addEventListener("click", closeAuth);
   modal?.addEventListener("click", (event) => { if (event.target === modal) closeAuth(); });
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && modal?.classList.contains("open")) closeAuth();
-  });
-  $$(".auth-form").forEach((form) => form.addEventListener("submit", (event) => {
+  $$(".auth-form").filter((form) => form.id !== "project-form").forEach((form) => form.addEventListener("submit", (event) => {
     event.preventDefault();
     const feedback = $(".form-feedback", form);
     const inputs = $$('input:not([type="checkbox"])', form);
@@ -249,13 +303,13 @@
       feedback.textContent = "Please confirm authorized use before creating an account.";
       return;
     }
-    feedback.textContent = form.dataset.form === "signup" ? "Workspace created — welcome to the demo." : "Signed in to the demo workspace.";
+    feedback.textContent = "Frontend demo only — no account was created.";
     showToast(feedback.textContent);
     window.setTimeout(closeAuth, 1100);
   }));
-  $(".forgot-link")?.addEventListener("click", (event) => { event.preventDefault(); showToast("Password reset is available in the full product."); });
+  $(".forgot-link")?.addEventListener("click", (event) => { event.preventDefault(); showToast("No password reset is wired to this static demo."); });
 
-  // Project creation is a scoped front-end demo flow. Active testing still requires confirmation.
+  // Project form is also frontend-only; it only starts the non-networked UI flow.
   const projectModal = $("#project-modal");
   let lastProjectTrigger;
   const openProject = () => {
@@ -303,8 +357,8 @@
       authorized.focus();
       return;
     }
-    feedback.textContent = "Project created. Preparing the assessment demo…";
-    showToast("Project created. Assessment setup is ready in the demo.");
+    feedback.textContent = "Frontend demo ready — no project was stored.";
+    showToast("No project was stored. Preparing the non-networked UI flow.");
     window.setTimeout(() => {
       closeProject();
       $("#hero-url").value = url.value.trim();
@@ -314,9 +368,8 @@
     }, 900);
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && projectModal?.classList.contains("open")) closeProject();
+    if (event.key !== "Escape") return;
+    if (modal?.classList.contains("open")) closeAuth();
+    if (projectModal?.classList.contains("open")) closeProject();
   });
-
-  // Close or reset compact nav when resizing back to desktop.
-  window.addEventListener("resize", () => { if (window.innerWidth > 850) closeMobileNav(); });
 })();
