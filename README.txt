@@ -4,9 +4,11 @@ BREACHAI OPEN-SOURCE WEBSITE
 This repository contains the BREACHAI frontend product experience: an open-source,
 frontend-only website for an authorized AI web security testing platform.
 
-The site does not run a security scanner, contact target URLs, create accounts, store
-projects, or generate security findings. The scan and project forms are UI-only flows.
-They require explicit authorization confirmation and do not send requests anywhere.
+The site includes safe browser-based scans. Website mode makes one CORS request and
+checks readable response headers only. GitHub repository mode reads public source blobs.
+Files/folder mode scans selected text files locally. It does not execute target code,
+crawl websites, exploit systems, create accounts, or store projects. Authorization is
+required for every scan mode.
 
 LIVE GITHUB DATA
 ----------------

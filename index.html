@@ -80,14 +80,32 @@
             <span class="secure-badge"><span aria-hidden="true">✦</span> Safe mode</span>
           </div>
           <form id="hero-scan-form" class="scan-form" novalidate>
-            <label for="hero-url">Website URL</label>
-            <div class="input-wrap url-input"><span aria-hidden="true">⌁</span><input id="hero-url" name="url" type="url" inputmode="url" placeholder="https://your-authorized-app.com" autocomplete="url" required /></div>
+            <div class="scan-source-tabs" role="tablist" aria-label="Choose a scan source">
+              <button class="scan-source-tab active" type="button" role="tab" aria-selected="true" aria-controls="scan-source-website" data-source-tab="website">Website</button>
+              <button class="scan-source-tab" type="button" role="tab" aria-selected="false" aria-controls="scan-source-repository" data-source-tab="repository">GitHub repo</button>
+              <button class="scan-source-tab" type="button" role="tab" aria-selected="false" aria-controls="scan-source-files" data-source-tab="files">Files / folder</button>
+            </div>
+            <div class="scan-source-panel active" id="scan-source-website" role="tabpanel">
+              <label for="hero-url">Website URL</label>
+              <div class="input-wrap url-input"><span aria-hidden="true">⌁</span><input id="hero-url" name="url" type="url" inputmode="url" placeholder="https://your-authorized-app.com" autocomplete="url" /></div>
+              <small class="source-help">Passive browser check only: response status, content type and security headers. No crawling or exploitation.</small>
+            </div>
+            <div class="scan-source-panel" id="scan-source-repository" role="tabpanel" hidden>
+              <label for="repo-url">GitHub repository</label>
+              <div class="input-wrap url-input"><span aria-hidden="true">⌘</span><input id="repo-url" name="repository" type="text" inputmode="url" placeholder="owner/repository or GitHub URL" autocomplete="off" /></div>
+              <small class="source-help">Reads public GitHub tree and text blobs. It never clones or executes repository code.</small>
+            </div>
+            <div class="scan-source-panel" id="scan-source-files" role="tabpanel" hidden>
+              <div class="upload-actions"><label class="upload-button" for="source-files"><span aria-hidden="true">＋</span> Choose files<input id="source-files" type="file" multiple /></label><label class="upload-button" for="source-folder"><span aria-hidden="true">□</span> Choose folder<input id="source-folder" type="file" webkitdirectory directory multiple /></label></div>
+              <p class="selected-files" id="selected-files" aria-live="polite">No files selected.</p>
+              <small class="source-help">Scans text locally in your browser. Files are not uploaded or stored.</small>
+            </div>
             <p class="field-error" id="hero-url-error" role="alert"></p>
-            <label class="check-row" for="hero-authorized"><input id="hero-authorized" type="checkbox" required /><span class="check-custom" aria-hidden="true"></span><span>I confirm that I own this website or have explicit authorization to test it.</span></label>
+            <label class="check-row" for="hero-authorized"><input id="hero-authorized" type="checkbox" required /><span class="check-custom" aria-hidden="true"></span><span>I confirm that I own this target or have explicit authorization to test it.</span></label>
             <p class="field-error" id="hero-auth-error" role="alert"></p>
-            <button class="button button-full button-lime" type="submit">Start security scan <span aria-hidden="true">→</span></button>
+            <button class="button button-full button-lime" type="submit">Start authorized scan <span aria-hidden="true">→</span></button>
           </form>
-          <div class="scan-card-footer"><span><span class="lock-icon" aria-hidden="true">⌑</span> Authorization required</span><span>Only your authorized target</span></div>
+          <div class="scan-card-footer"><span><span class="lock-icon" aria-hidden="true">⌑</span> Authorization required</span><span>Safe static / passive checks</span></div>
         </div>
       </div>
       <div class="hero-grid-lines" aria-hidden="true"></div>
@@ -151,22 +169,21 @@
 
     <section class="section-pad demo-section" id="scan-demo">
       <div class="container">
-        <div class="section-heading split-heading reveal"><div><span class="eyebrow">04 / Try the experience</span><h2>A security scan,<br /><em>without the theatre.</em></h2></div><p>This is a UI-only flow for exploring the product surface. It does not contact the URL, run a scanner or invent findings. A real scan engine is not connected to this open-source demo.</p></div>
-        <div class="demo-shell glass-card reveal">
-          <div class="demo-toolbar"><div class="window-dots"><i></i><i></i><i></i></div><div class="demo-url"><span class="lock-icon">⌑</span><span id="demo-target">No target selected</span></div><span class="demo-label">UI SIMULATION</span></div>
+        <div class="section-heading split-heading reveal"><div><span class="eyebrow">04 / Authorized scan engine</span><h2>Inspect what you<br /><em>actually provide.</em></h2></div><p>Choose a website for a passive browser check, a public GitHub repository for real source inspection, or local files and folders for a private in-browser scan. Every result below is derived from the source you select.</p></div>
+        <div class="demo-shell glass-card reveal" id="scan-results-shell">
+          <div class="demo-toolbar"><div class="window-dots"><i></i><i></i><i></i></div><div class="demo-url"><span class="lock-icon">⌑</span><span id="demo-target">Awaiting an authorized target</span></div><span class="demo-label">SAFE SCAN</span></div>
           <div class="demo-content">
-            <div class="demo-intro"><div><span class="mini-label">AUTHORIZED ASSESSMENT / UI-ONLY FLOW</span><h3>Application security assessment</h3></div><div class="demo-score"><span>FINDINGS / NOT CONNECTED</span><strong id="demo-score">—</strong></div></div>
-            <div class="progress-wrap" aria-live="polite"><div class="progress-meta"><span id="scan-status">Ready to preview the flow</span><span id="scan-percent">0%</span></div><div class="progress-track"><span id="scan-progress"></span></div></div>
+            <div class="demo-intro"><div><span class="mini-label" id="scan-mode-label">AUTHORIZATION REQUIRED / NO SCAN RUN</span><h3 id="scan-title">Real checks. No invented findings.</h3></div><div class="demo-score"><span>FINDINGS</span><strong id="demo-score">—</strong></div></div>
+            <div class="progress-wrap" aria-live="polite"><div class="progress-meta"><span id="scan-status">Choose a source above to begin</span><span id="scan-percent">0%</span></div><div class="progress-track"><span id="scan-progress"></span></div></div>
             <div class="scan-stages" id="scan-stages">
-              <div class="scan-stage" data-stage="0"><span class="stage-status">○</span><div><strong>Initializing the UI flow...</strong><small>No network request is made</small></div><time>--</time></div>
-              <div class="scan-stage" data-stage="1"><span class="stage-status">○</span><div><strong>Discovering application...</strong><small>Illustrating the discovery step</small></div><time>--</time></div>
-              <div class="scan-stage" data-stage="2"><span class="stage-status">○</span><div><strong>Analyzing authentication...</strong><small>Illustrating the analysis step</small></div><time>--</time></div>
-              <div class="scan-stage" data-stage="3"><span class="stage-status">○</span><div><strong>Checking API authorization...</strong><small>Illustrating a controlled test step</small></div><time>--</time></div>
-              <div class="scan-stage" data-stage="4"><span class="stage-status">○</span><div><strong>Reviewing security headers...</strong><small>Illustrating configuration checks</small></div><time>--</time></div>
-              <div class="scan-stage" data-stage="5"><span class="stage-status">○</span><div><strong>Reviewing dependencies...</strong><small>Illustrating dependency checks</small></div><time>--</time></div>
-              <div class="scan-stage" data-stage="6"><span class="stage-status">○</span><div><strong>Preparing the report view...</strong><small>No findings are generated</small></div><time>--</time></div>
+              <div class="scan-stage" data-stage="0"><span class="stage-status">○</span><div><strong>Preparing scan...</strong><small>Waiting for an authorized source</small></div><time>--</time></div>
+              <div class="scan-stage" data-stage="1"><span class="stage-status">○</span><div><strong>Reading source...</strong><small>Files are inspected without execution</small></div><time>--</time></div>
+              <div class="scan-stage" data-stage="2"><span class="stage-status">○</span><div><strong>Running safe checks...</strong><small>Patterns and passive controls only</small></div><time>--</time></div>
+              <div class="scan-stage" data-stage="3"><span class="stage-status">○</span><div><strong>Reviewing evidence...</strong><small>Secrets are never printed into results</small></div><time>--</time></div>
+              <div class="scan-stage" data-stage="4"><span class="stage-status">○</span><div><strong>Building findings...</strong><small>Only observations derived from the source</small></div><time>--</time></div>
             </div>
-            <div class="demo-footer"><p><span class="info-icon">i</span> Nothing is sent anywhere. Enter a URL only to preview the interface.</p><button class="button button-lime" id="demo-scan-button" type="button">Preview UI flow <span aria-hidden="true">→</span></button></div>
+            <div class="real-scan-results" id="scan-results" aria-live="polite"><div class="scan-empty"><span class="info-icon">i</span><p>Run a scan to see source-derived results here.</p></div></div>
+            <div class="demo-footer"><p><span class="info-icon">i</span> Safe by design: no target crawling, exploitation, code execution, credential use or file upload.</p><button class="button button-lime" id="demo-scan-button" type="button">Run selected scan <span aria-hidden="true">→</span></button></div>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 An open-source, frontend-only product experience for an authorized AI web security testing platform.
 
-The website presents the product concept, responsible-testing principles, a non-networked scan-flow UI, and a live public view of this repository. It does **not** run a scanner, contact target URLs, create accounts, store projects, or fabricate security findings.
+The website presents the product concept, responsible-testing principles, a safe browser-based scan engine, and a live public view of this repository. It does not execute target code, crawl websites, exploit systems, create accounts, store projects, or fabricate security findings.
 
 ## Live repository data
 
@@ -31,9 +31,13 @@ Open `http://localhost:4173` in a browser.
 
 The public GitHub API is requested directly by the browser. A network connection is required to populate live repository values.
 
-## Responsible use
+## Scan modes and responsible use
 
-The scan form and project form are UI-only previews. They require an authorization confirmation for the interaction, but they do not send requests to the supplied URL. Do not use this repository to test systems you do not own or have explicit permission to assess.
+- **Website:** makes one browser CORS request and checks the response status, content type and readable security headers. It does not crawl, authenticate, send payloads or exploit anything. Targets that do not allow browser CORS reads are reported as unavailable rather than bypassed.
+- **GitHub repository:** reads the public repository tree and text blobs, then checks paths and source for credential-like assignments, private-key material, unsafe sinks, command execution patterns and plaintext HTTP references. Values that look secret are never printed.
+- **Files / folder:** reads selected text files locally in the browser. Files are not uploaded or stored.
+
+All modes require confirmation that you own the target or have explicit authorization to assess it. The project form is a frontend convenience and does not persist a project. Do not use this repository to test systems you do not own or have explicit permission to assess.
 
 ## Contributing
 

@@ -172,89 +172,321 @@
   // Refresh public repository metadata periodically without inventing a fallback value.
   window.setInterval(loadGithubData, 300000);
 
-  // UI-only scan flow. It never contacts the supplied URL and never produces findings.
+  // Safe, real scan engine. It performs passive website checks and local/source inspection only.
   const stages = $$(".scan-stage");
   const progress = $("#scan-progress");
   const scanPercent = $("#scan-percent");
   const scanStatus = $("#scan-status");
+  const scanModeLabel = $("#scan-mode-label");
+  const scanTitle = $("#scan-title");
   const demoTarget = $("#demo-target");
+  const demoScore = $("#demo-score");
   const demoScanButton = $("#demo-scan-button");
+  const scanResults = $("#scan-results");
+  const heroForm = $("#hero-scan-form");
+  let activeSource = "website";
+  let selectedFiles = [];
   let scanRunning = false;
   let scanTimer;
-  const startScan = (url = "") => {
-    if (scanRunning) return;
-    scanRunning = true;
-    const cleanUrl = url.trim() ? url.replace(/^https?:\/\//i, "").replace(/\/$/, "") : "No target selected";
-    if (demoTarget) demoTarget.textContent = cleanUrl;
-    if (demoScanButton) {
-      demoScanButton.disabled = true;
-      demoScanButton.textContent = "Previewing…";
-    }
+
+  const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+  const setSource = (source) => {
+    activeSource = source;
+    $$(".scan-source-tab").forEach((tab) => {
+      const selected = tab.dataset.sourceTab === source;
+      tab.classList.toggle("active", selected);
+      tab.setAttribute("aria-selected", String(selected));
+    });
+    $$(".scan-source-panel").forEach((panel) => {
+      const selected = panel.id === `scan-source-${source}`;
+      panel.classList.toggle("active", selected);
+      panel.hidden = !selected;
+    });
+    if (scanModeLabel) scanModeLabel.textContent = "AUTHORIZATION REQUIRED / NO SCAN RUN";
+    if (scanStatus) scanStatus.textContent = source === "website" ? "Enter an authorized website" : source === "repository" ? "Enter a GitHub repository" : "Choose files or a folder";
+  };
+  $$(".scan-source-tab").forEach((tab) => tab.addEventListener("click", () => setSource(tab.dataset.sourceTab)));
+
+  const mergeFiles = (fileList) => {
+    const incoming = Array.from(fileList || []);
+    const merged = new Map(selectedFiles.map((file) => [`${file.webkitRelativePath || file.name}:${file.lastModified}`, file]));
+    incoming.forEach((file) => merged.set(`${file.webkitRelativePath || file.name}:${file.lastModified}`, file));
+    selectedFiles = Array.from(merged.values());
+    const label = $("#selected-files");
+    if (label) label.textContent = selectedFiles.length ? `${selectedFiles.length.toLocaleString()} file${selectedFiles.length === 1 ? "" : "s"} selected locally.` : "No files selected.";
+  };
+  $("#source-files")?.addEventListener("change", (event) => mergeFiles(event.target.files));
+  $("#source-folder")?.addEventListener("change", (event) => mergeFiles(event.target.files));
+
+  const resetStages = () => {
+    window.clearInterval(scanTimer);
     stages.forEach((stage) => {
       stage.classList.remove("done", "warning", "running");
       $(".stage-status", stage).textContent = "○";
       $("time", stage).textContent = "--";
     });
-    let current = -1;
-    const advance = () => {
-      if (current >= 0 && stages[current]) {
-        const prior = stages[current];
-        prior.classList.remove("running");
-        prior.classList.add("done");
-        $(".stage-status", prior).textContent = "✓";
-        $("time", prior).textContent = "done";
-      }
-      current += 1;
-      if (current >= stages.length) {
-        window.clearInterval(scanTimer);
-        if (progress) progress.style.width = "100%";
-        if (scanPercent) scanPercent.textContent = "100%";
-        if (scanStatus) scanStatus.textContent = "UI flow complete · no live data generated";
-        scanRunning = false;
-        if (demoScanButton) {
-          demoScanButton.disabled = false;
-          demoScanButton.innerHTML = "Preview again <span aria-hidden=\"true\">↻</span>";
-        }
-        showToast("UI flow complete. No URL was contacted and no findings were created.");
-        return;
-      }
-      const stage = stages[current];
-      stage.classList.add("running");
-      $(".stage-status", stage).textContent = "◌";
-      const percent = Math.round((current / stages.length) * 100);
-      if (progress) progress.style.width = `${percent}%`;
-      if (scanPercent) scanPercent.textContent = `${percent}%`;
-      if (scanStatus) scanStatus.textContent = stage.querySelector("strong")?.textContent || "Previewing…";
-    };
-    advance();
-    scanTimer = window.setInterval(advance, 650);
+    if (progress) progress.style.width = "0%";
+    if (scanPercent) scanPercent.textContent = "0%";
   };
-  demoScanButton?.addEventListener("click", () => startScan(demoTarget?.textContent === "No target selected" ? "" : demoTarget?.textContent || ""));
+  const setStage = (index, status = "running") => {
+    stages.forEach((stage, stageIndex) => {
+      stage.classList.remove("done", "warning", "running");
+      if (stageIndex < index || (status === "done" && stageIndex === index)) {
+        stage.classList.add("done");
+        $(".stage-status", stage).textContent = "✓";
+        $("time", stage).textContent = "done";
+      } else if (stageIndex === index && status === "running") {
+        stage.classList.add("running");
+        $(".stage-status", stage).textContent = "◌";
+        $("time", stage).textContent = "…";
+      } else {
+        $(".stage-status", stage).textContent = "○";
+        $("time", stage).textContent = "--";
+      }
+    });
+    const percent = Math.min(100, Math.round((index / stages.length) * 100));
+    if (progress) progress.style.width = `${percent}%`;
+    if (scanPercent) scanPercent.textContent = `${percent}%`;
+  };
 
-  const heroForm = $("#hero-scan-form");
+  const lineNumberAt = (text, index) => text.slice(0, index).split("\n").length;
+  const finding = (data) => ({ severity: "medium", ...data });
+  const sourceChecks = [
+    { key: "secret-assignment", regex: /\b(api[_-]?key|secret|token|password|client_secret)\b\s*[:=]\s*["'][^"']{8,}["']/gi, severity: "high", title: "Credential-like value in source", category: "Secrets exposure", description: "A credential-like assignment was detected. The matched value is intentionally redacted.", evidence: "A secret-shaped assignment was found; the value was not collected into the report." },
+    { key: "private-key", regex: /-----BEGIN [A-Z ]*PRIVATE KEY-----/g, severity: "critical", title: "Private key material in source", category: "Secrets exposure", description: "Private key material appears in a scanned file.", evidence: "A private-key header was matched; key contents were never displayed." },
+    { key: "eval", regex: /\beval\s*\(/g, severity: "medium", title: "Dynamic code execution pattern", category: "Unsafe input handling", description: "The source uses eval-like dynamic execution. Review whether untrusted input can reach it.", evidence: "The token eval( was matched in the scanned source." },
+    { key: "html-sink", regex: /\.(innerHTML|outerHTML|insertAdjacentHTML)\s*=/g, severity: "medium", title: "Unsafe HTML sink pattern", category: "Cross-site scripting", description: "A direct HTML-writing sink was found. Confirm that content is trusted or safely encoded.", evidence: "A direct HTML sink assignment was matched; no payload was sent." },
+    { key: "command-execution", regex: /\b(child_process|execFile|execSync|spawnSync|\.exec)\s*\(?/g, severity: "high", title: "Command execution API pattern", category: "Injection", description: "A command execution API was found. Confirm that arguments cannot be controlled by untrusted input.", evidence: "A command execution API token was matched; no command was executed." },
+    { key: "insecure-http", regex: /\bhttp:\/\/[^\s"'`<>]+/gi, severity: "low", title: "Insecure HTTP URL reference", category: "Transport security", description: "A plaintext HTTP URL appears in source. Review whether it is safe to use outside local development.", evidence: "An http:// URL reference was matched in the scanned source." }
+  ];
+  const textExtensions = /\.(?:html?|css|scss|sass|less|js|jsx|mjs|cjs|ts|tsx|vue|svelte|astro|json|ya?ml|xml|md|txt|env|ini|conf|config|php|py|rb|go|java|kt|swift|sh|sql|toml)$/i;
+  const binaryExtensions = /\.(?:png|jpe?g|gif|webp|bmp|ico|pdf|zip|gz|tar|7z|mp[34]|woff2?|ttf|eot|exe|dll|so|dylib|class)$/i;
+  const sensitivePath = /(^|\/)(?:\.env(?:\.|$)|id_rsa(?:\.|$)|credentials?(?:\.|$)|secrets?(?:\.|$)|.*\.(?:pem|key|p12|pfx))$/i;
+
+  const scanText = (text, path, link = "") => {
+    const findings = [];
+    sourceChecks.forEach((check) => {
+      check.regex.lastIndex = 0;
+      let match;
+      let matches = 0;
+      while ((match = check.regex.exec(text)) && matches < 3) {
+        findings.push(finding({
+          key: `${check.key}:${path}:${lineNumberAt(text, match.index)}`,
+          severity: check.severity,
+          title: check.title,
+          category: check.category,
+          description: check.description,
+          evidence: `${check.evidence} Line ${lineNumberAt(text, match.index)} in ${path}.`,
+          path,
+          line: lineNumberAt(text, match.index),
+          link
+        }));
+        matches += 1;
+      }
+    });
+    return findings;
+  };
+
+  const pathFindings = (path, link = "") => {
+    const findings = [];
+    if (sensitivePath.test(path)) {
+      findings.push(finding({ key: `sensitive-file:${path}`, severity: "high", title: "Sensitive-looking file path", category: "Secrets exposure", description: "A filename commonly used for keys, credentials or environment secrets is present in the selected source.", evidence: `The path ${path} matches a sensitive-file pattern. File contents were not displayed.`, path, link }));
+    }
+    if (/\.map$/i.test(path)) {
+      findings.push(finding({ key: `source-map:${path}`, severity: "low", title: "Public source map file", category: "Information exposure", description: "A source map is present. Confirm that publishing source maps is intended for this environment.", evidence: `The source map path ${path} was found.`, path, link }));
+    }
+    return findings;
+  };
+
+  const readLocalFile = async (file) => {
+    const path = file.webkitRelativePath || file.name;
+    if (file.size > 750000 || binaryExtensions.test(path)) return { path, skipped: true, reason: "binary or larger than 750 KB" };
+    if (!textExtensions.test(path) && file.size > 250000) return { path, skipped: true, reason: "unrecognised large file type" };
+    try {
+      return { path, text: await file.text(), link: "" };
+    } catch {
+      return { path, skipped: true, reason: "could not be read by the browser" };
+    }
+  };
+
+  const scanLocalFiles = async (files) => {
+    const findings = [];
+    const notes = [];
+    const capped = files.slice(0, 200);
+    if (files.length > capped.length) notes.push(`Only the first ${capped.length} files were read to keep the browser responsive.`);
+    let scanned = 0;
+    for (const file of capped) {
+      const path = file.webkitRelativePath || file.name;
+      findings.push(...pathFindings(path));
+      const result = await readLocalFile(file);
+      if (result.skipped) { notes.push(`${path}: skipped (${result.reason}).`); continue; }
+      scanned += 1;
+      findings.push(...scanText(result.text, result.path));
+    }
+    return { kind: "files", label: `${scanned} local text file${scanned === 1 ? "" : "s"}`, findings, notes };
+  };
+
+  const parseGithubRepository = (value) => {
+    const raw = value.trim();
+    if (!raw) throw new Error("Enter a GitHub repository URL or owner/repository.");
+    let path = raw;
+    try {
+      const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://github.com/${raw}`);
+      if (url.hostname.toLowerCase() !== "github.com") throw new Error("Only github.com repositories are supported.");
+      path = url.pathname;
+    } catch (error) {
+      if (error.message.includes("Only github")) throw error;
+    }
+    const parts = path.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+    if (parts.length < 2 || !/^[\w.-]+$/.test(parts[0]) || !/^[\w.-]+$/.test(parts[1])) throw new Error("Use a GitHub URL such as github.com/owner/repository.");
+    return { owner: parts[0], repo: parts[1].replace(/\.git$/, "") };
+  };
+
+  const decodeGithubBlob = (content) => {
+    const binary = atob(content.replace(/\s/g, ""));
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  };
+
+  const scanGithubRepository = async (value) => {
+    const { owner, repo } = parseGithubRepository(value);
+    const base = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
+    const metadata = await fetchGithubJson(base);
+    const branch = metadata.default_branch || "main";
+    const treeResponse = await fetchGithubJson(`${base}/git/trees/${encodeURIComponent(branch)}?recursive=1`);
+    const entries = (treeResponse.tree || []).filter((entry) => entry.type === "blob");
+    const notes = [];
+    if (treeResponse.truncated) notes.push("GitHub marked this recursive tree as truncated; the result is partial.");
+    const candidates = entries.filter((entry) => textExtensions.test(entry.path) || sensitivePath.test(entry.path) || /\.map$/i.test(entry.path)).slice(0, 60);
+    if (entries.length > candidates.length) notes.push(`Inspected ${candidates.length} text-like paths out of ${entries.length} repository paths.`);
+    const findings = [];
+    let scanned = 0;
+    let totalBytes = 0;
+    for (const entry of candidates) {
+      const blobPath = entry.path.split("/").map(encodeURIComponent).join("/");
+      const link = `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/blob/${encodeURIComponent(branch)}/${blobPath}`;
+      findings.push(...pathFindings(entry.path, link));
+      if (entry.size > 750000 || sensitivePath.test(entry.path)) continue;
+      try {
+        const blob = await fetchGithubJson(`${base}/git/blobs/${entry.sha}`);
+        if (blob.encoding !== "base64" || !blob.content) continue;
+        const text = decodeGithubBlob(blob.content);
+        totalBytes += text.length;
+        if (totalBytes > 5000000) { notes.push("Stopped reading after 5 MB of text to keep this browser scan bounded."); break; }
+        scanned += 1;
+        findings.push(...scanText(text, entry.path, link));
+      } catch {
+        notes.push(`${entry.path}: GitHub did not return a readable blob.`);
+      }
+    }
+    return { kind: "repository", label: `${owner}/${repo} · ${scanned} source file${scanned === 1 ? "" : "s"}`, findings, notes, metadata };
+  };
+
+  const scanWebsite = async (value) => {
+    const url = new URL(value);
+    if (!/^https?:$/.test(url.protocol)) throw new Error("Only http and https URLs are supported.");
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
+    try {
+      const response = await fetch(url.href, { method: "GET", mode: "cors", redirect: "follow", credentials: "omit", signal: controller.signal, cache: "no-store" });
+      const findings = [];
+      const headers = [
+        ["content-security-policy", "Content Security Policy", "medium", "Add a tested Content-Security-Policy header."],
+        ["strict-transport-security", "HTTP Strict Transport Security", "medium", "Serve the site over HTTPS and configure HSTS when the deployment is ready."],
+        ["x-content-type-options", "X-Content-Type-Options", "low", "Set X-Content-Type-Options: nosniff."],
+        ["referrer-policy", "Referrer-Policy", "low", "Set a deliberate Referrer-Policy for the application."],
+        ["permissions-policy", "Permissions-Policy", "low", "Set a Permissions-Policy appropriate for the application."],
+        ["x-frame-options", "Frame protection", "medium", "Set frame protection with X-Frame-Options or frame-ancestors in CSP."]
+      ];
+      headers.forEach(([key, name, severity, recommendation]) => {
+        const present = Boolean(response.headers.get(key)) || (key === "x-frame-options" && Boolean(response.headers.get("content-security-policy")?.match(/frame-ancestors/i)));
+        if (!present) findings.push(finding({ key: `website-header:${key}`, severity, title: `Missing ${name}`, category: "Security headers", description: `The fetched response did not expose a ${name} header.`, evidence: `GET ${url.origin}${url.pathname} returned no readable ${name} header.`, recommendation, path: url.href }));
+      });
+      if (url.protocol !== "https:") findings.push(finding({ key: "website-http", severity: "medium", title: "Website uses HTTP", category: "Transport security", description: "The supplied URL uses plaintext HTTP.", evidence: `The scan target protocol is ${url.protocol}.`, recommendation: "Redirect the application to HTTPS and enable HSTS after verifying the deployment." }));
+      if (!response.ok) findings.push(finding({ key: `website-status:${response.status}`, severity: "low", title: "Unexpected HTTP response status", category: "Availability", description: "The target returned a non-success HTTP status to the passive request.", evidence: `The response status was ${response.status} ${response.statusText}.` }));
+      return { kind: "website", label: `${response.status} ${response.statusText || "response"} · passive response check`, findings, notes: ["Only one GET request was made. No crawling, payloads, authentication attempts or exploitation were performed."], metadata: { status: response.status, contentType: response.headers.get("content-type") || "Not exposed" } };
+    } catch (error) {
+      const reason = error.name === "AbortError" ? "The request timed out after 12 seconds." : "The browser could not read this target. The server may not allow cross-origin reads.";
+      return { kind: "website-blocked", label: "No browser-readable response", findings: [], notes: [reason, "No active testing was attempted. Use the repository or local files scan for source inspection, or connect an authorized server-side scanner."], error: true };
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  };
+
+  const renderScanResults = (result) => {
+    if (!scanResults) return;
+    const count = result.findings.length;
+    if (demoScore) demoScore.textContent = result.error ? "—" : String(count);
+    if (scanModeLabel) scanModeLabel.textContent = `${result.kind === "website-blocked" ? "NO RESPONSE" : "SCAN COMPLETE"} / SOURCE-DERIVED RESULTS`;
+    if (scanTitle) scanTitle.textContent = result.kind === "website-blocked" ? "The browser could not read that target." : `${result.label} inspected`;
+    const notes = (result.notes || []).map((note) => `<li>${escapeHtml(note)}</li>`).join("");
+    const findings = result.findings.map((item) => `<article class="real-finding"><div class="real-finding-head"><span class="severity ${escapeHtml(item.severity)}">${escapeHtml(item.severity.toUpperCase())}</span><span>${escapeHtml(item.category)}</span></div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.description)}</p><div class="real-finding-evidence"><strong>Safe evidence</strong><span>${escapeHtml(item.evidence)}</span></div>${item.recommendation ? `<div class="real-finding-fix"><strong>Suggested next step</strong><span>${escapeHtml(item.recommendation)}</span></div>` : ""}${item.link ? `<a href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer">Open source location ↗</a>` : ""}</article>`).join("");
+    const summaryCount = result.error ? "—" : `${count.toLocaleString()} observation${count === 1 ? "" : "s"}`;
+    const emptyState = result.error ? "" : `<div class="scan-empty success"><span class="issue-empty-icon">✓</span><p>No matching patterns were detected in the inspected source. This is not proof that the source is secure.</p></div>`;
+    scanResults.innerHTML = `<div class="scan-summary"><strong>${summaryCount}</strong><span>${result.kind === "website-blocked" ? "No target data was available to inspect." : "Derived from the selected source; no values were invented."}</span></div>${findings || emptyState}${notes ? `<div class="scan-notes"><strong>Scan notes</strong><ul>${notes}</ul></div>` : ""}`;
+  };
+
+  const scanConfig = () => {
+    const authorized = $("#hero-authorized");
+    if (!authorized?.checked) throw new Error("Confirm that you own the target or have explicit authorization before scanning.");
+    if (activeSource === "website") {
+      const value = $("#hero-url")?.value.trim() || "";
+      try { const parsed = new URL(value); if (!/^https?:$/.test(parsed.protocol)) throw new Error(); } catch { throw new Error("Enter a valid http or https website URL."); }
+      return { mode: "website", value };
+    }
+    if (activeSource === "repository") return { mode: "repository", value: $("#repo-url")?.value.trim() || "" };
+    if (!selectedFiles.length) throw new Error("Choose at least one file or a folder to scan locally.");
+    return { mode: "files", files: selectedFiles };
+  };
+
+  const startScan = async (config) => {
+    if (scanRunning) return;
+    scanRunning = true;
+    resetStages();
+    if (demoScanButton) { demoScanButton.disabled = true; demoScanButton.textContent = "Scanning…"; }
+    if (scanResults) scanResults.innerHTML = `<div class="scan-empty"><span class="loader-dot"></span><p>Running safe checks against the selected source…</p></div>`;
+    if (demoTarget) demoTarget.textContent = config.mode === "website" ? new URL(config.value).origin : config.mode === "repository" ? config.value : `${config.files.length.toLocaleString()} local file${config.files.length === 1 ? "" : "s"}`;
+    if (scanStatus) scanStatus.textContent = "Preparing scan…";
+    try {
+      setStage(0); await wait(120);
+      setStage(1); if (scanStatus) scanStatus.textContent = "Reading selected source…";
+      const result = config.mode === "website" ? await scanWebsite(config.value) : config.mode === "repository" ? await scanGithubRepository(config.value) : await scanLocalFiles(config.files);
+      setStage(2); if (scanStatus) scanStatus.textContent = "Running safe checks…"; await wait(120);
+      setStage(3); if (scanStatus) scanStatus.textContent = "Reviewing evidence…"; await wait(120);
+      setStage(4); if (scanStatus) scanStatus.textContent = "Building findings…"; await wait(120);
+      setStage(stages.length, "done");
+      renderScanResults(result);
+      if (scanStatus) scanStatus.textContent = `Complete · ${result.label}`;
+      if (scanPercent) scanPercent.textContent = "100%";
+      if (progress) progress.style.width = "100%";
+      showToast(`${result.findings.length.toLocaleString()} source-derived observation${result.findings.length === 1 ? "" : "s"} returned.`);
+    } catch (error) {
+      setStage(stages.length, "done");
+      if (scanStatus) scanStatus.textContent = "Scan stopped · input or API error";
+      if (scanResults) scanResults.innerHTML = `<div class="issue-empty"><strong>Scan could not start.</strong><p>${escapeHtml(error.message || "Check the source and try again.")}</p></div>`;
+      if (demoScore) demoScore.textContent = "—";
+      showToast(error.message || "Scan could not start.");
+    } finally {
+      scanRunning = false;
+      if (demoScanButton) { demoScanButton.disabled = false; demoScanButton.innerHTML = "Run selected scan <span aria-hidden=\"true\">→</span>"; }
+    }
+  };
+
   heroForm?.addEventListener("submit", (event) => {
     event.preventDefault();
-    const url = $("#hero-url");
-    const authorized = $("#hero-authorized");
-    const urlError = $("#hero-url-error");
-    const authError = $("#hero-auth-error");
-    urlError.textContent = "";
-    authError.textContent = "";
-    let valid = true;
-    try {
-      const parsed = new URL(url.value.trim());
-      if (!/^https?:$/.test(parsed.protocol) || !parsed.hostname.includes(".")) throw new Error("invalid");
-    } catch {
-      urlError.textContent = "Enter a valid http or https website URL.";
-      valid = false;
+    $("#hero-url-error").textContent = "";
+    $("#hero-auth-error").textContent = "";
+    let config;
+    try { config = scanConfig(); } catch (error) {
+      if (error.message.includes("authorization")) $("#hero-auth-error").textContent = error.message;
+      else $("#hero-url-error").textContent = error.message;
+      return;
     }
-    if (!authorized.checked) {
-      authError.textContent = "Please confirm you are authorized to test this website.";
-      valid = false;
-    }
-    if (!valid) return;
     $("#scan-demo")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(() => startScan(url.value.trim()), 500);
+    window.setTimeout(() => startScan(config), 350);
+  });
+  demoScanButton?.addEventListener("click", () => {
+    try { startScan(scanConfig()); } catch (error) { showToast(error.message); }
   });
 
   // Auth modal: forms validate locally and explicitly tell users no account is created here.
@@ -309,7 +541,7 @@
   }));
   $(".forgot-link")?.addEventListener("click", (event) => { event.preventDefault(); showToast("No password reset is wired to this static demo."); });
 
-  // Project form is also frontend-only; it only starts the non-networked UI flow.
+  // Project form is frontend-only persistence, but it can start the real safe scan.
   const projectModal = $("#project-modal");
   let lastProjectTrigger;
   const openProject = () => {
@@ -357,14 +589,15 @@
       authorized.focus();
       return;
     }
-    feedback.textContent = "Frontend demo ready — no project was stored.";
-    showToast("No project was stored. Preparing the non-networked UI flow.");
+    feedback.textContent = "Project form complete — no project was stored; starting a safe scan.";
+    showToast("No project was stored. Starting the authorized passive scan.");
     window.setTimeout(() => {
       closeProject();
+      setSource("website");
       $("#hero-url").value = url.value.trim();
       $("#hero-authorized").checked = true;
       $("#scan-demo")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      window.setTimeout(() => startScan(url.value.trim()), 500);
+      window.setTimeout(() => startScan({ mode: "website", value: url.value.trim() }), 500);
     }, 900);
   });
   document.addEventListener("keydown", (event) => {
